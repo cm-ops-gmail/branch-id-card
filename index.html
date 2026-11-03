@@ -380,6 +380,7 @@
   #profpage .dobt.ph{color:#6b7280}
   #profpage .sect+.g3,#profpage .sect+.g4{margin-top:0}
   #profpage .card.pad>.sect:not(:first-child){margin-top:40px!important}
+  .pcard .nophoto{background:#fff4d6;border:1px solid #f1d58a;color:#7a4a00;border-radius:7px;font-size:11px;padding:4px 8px;margin-bottom:8px}
   #printarea{display:none}
   @media print{
     @page{size:85.6mm 54mm;margin:0}
@@ -548,6 +549,11 @@
 <div id="printarea"></div>
 <div class="toast" id="bftoast"></div>
 <div id="tip"></div>
+<div id="pconf" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:170;display:none;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:min(440px,92vw);padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div id="pcmsg" style="font-size:13px;line-height:1.6;max-height:50vh;overflow:auto"></div>
+    <div class="hrow" style="justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button class="mbtn" id="pccancel">Cancel</button><button class="mbtn" id="pcskip"></button><button class="mbtn pri" id="pcyes"></button></div>
+  </div></div>
 <div id="capui">
   <h2 id="capname">Student photo</h2>
   <div id="capstat" class="muted" style="font-size:13px">Connecting…</div>
@@ -633,6 +639,7 @@ const empLabel=r=>r.prog==='Kids English Programme'?'Parent’s Mobile':'Emergen
 function missingOf(r){const m=[],c=(l,v)=>{if(!String(v==null?'':v).trim()||v==='—')m.push(l)};
   c('Name',r.name);c('Programme',r.prog);c('Batch',r.batch);c('ID No',r.sid);c('Validity',r.vcustom===''?'':'ok');c('Branch',r.branch);c('Blood Group',r.bg);c(empLabel(r),r.emg);
   if(!photoSrc(r))m.push('Photo');return m}
+const blockingOf=r=>missingOf(r).filter(x=>x!=='Photo');
 let PHOTOS={};try{PHOTOS=JSON.parse(localStorage.getItem('idphotos')||'{}')}catch(_){}
 const COLS={
  id:{l:'Order Date / ID',w:193,r:r=>`<div class="idcell"><div><div class="date">${fmt(r.day)}</div><a class="oid" href="#" data-oid="${r.uid}">${r.id}</a></div>${ICON}</div>`},
@@ -771,7 +778,7 @@ function renderTable(data){
   $('tbl').style.width=(SW+cols.reduce((s,k)=>s+COLS[k].w,0))+'px';
   const allSel=data.length&&data.every(r=>SEL.has(r.uid));
   $('tbl').innerHTML='<thead><tr>'+(idm?'<th class="pinned selcell" style="width:'+SELW+'px;left:0"><input type="checkbox" class="cb" id="selall" '+(allSel?'checked':'')+'></th>':'')+cols.map(k=>`<th class="${cls(k)}" style="${st(k)}">${COLS[k].l}</th>`).join('')+'</tr></thead><tbody>'+
-   data.map(r=>{const mm=missingOf(r);return '<tr'+(idm&&mm.length?' class="rowbad"':'')+'>'+(idm?'<td class="pinned selcell" style="width:'+SELW+'px;left:0"><div class="selin"><input type="checkbox" class="cb rc" data-u="'+r.uid+'" '+(SEL.has(r.uid)?'checked':'')+'>'+(mm.length?'<span class="badic" data-tip="Missing info — cannot generate ID card|'+mm.join(', ')+'">!</span>':'<span class="badic ok"></span>')+'<span class="edic" data-edit="'+r.uid+'" title="Edit student info"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg></span></div></td>':'')+cols.map(k=>`<td class="${cls(k)}${k==='id'?' id':''}" style="${st(k)}">${COLS[k].r(r)}</td>`).join('')+'</tr>'}).join('')+'</tbody>';
+   data.map(r=>{const mm=missingOf(r);return '<tr'+(idm&&mm.length?' class="rowbad"':'')+'>'+(idm?'<td class="pinned selcell" style="width:'+SELW+'px;left:0"><div class="selin"><input type="checkbox" class="cb rc" data-u="'+r.uid+'" '+(SEL.has(r.uid)?'checked':'')+'>'+(mm.length?'<span class="badic" data-tip="'+(mm.length===1&&mm[0]==='Photo'?'Photo missing — card can still be generated':'Missing info — cannot generate ID card')+'|'+mm.join(', ')+'">!</span>':'<span class="badic ok"></span>')+'<span class="edic" data-edit="'+r.uid+'" title="Edit student info"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg></span></div></td>':'')+cols.map(k=>`<td class="${cls(k)}${k==='id'?' id':''}" style="${st(k)}">${COLS[k].r(r)}</td>`).join('')+'</tr>'}).join('')+'</tbody>';
   if(idm)$('selall').onchange=e=>{data.forEach(r=>e.target.checked?SEL.add(r.uid):SEL.delete(r.uid));update()};
   $('tbl').querySelectorAll('.rc').forEach(c=>c.onchange=()=>{c.checked?SEL.add(+c.dataset.u):SEL.delete(+c.dataset.u);syncGen();const d=filtered();$('selall').checked=d.length&&d.every(r=>SEL.has(r.uid))});
   syncGen();
@@ -901,62 +908,78 @@ async function openGen(){
   const sel=rows.filter(r=>SEL.has(r.uid));if(!sel.length)return;
   $('idov').style.display='flex';$('pgrid').innerHTML='<div style="color:var(--muted)">Rendering…</div>';$('idwarn').style.display='none';
   try{await Promise.all([document.fonts.load('700 12px Poppins'),document.fonts.load('400 12px Poppins'),document.fonts.load('800 20px Inter'),document.fonts.load('400 20px Inter'),document.fonts.load('600 20px Inter')])}catch(_){}
-  GEN=[];$('pgrid').innerHTML='';const bad=[];
+  GEN=[];$('pgrid').innerHTML='';const bad=[],nop=[];
   for(const r of sel){
-    const miss=missingOf(r),d=document.createElement('div');d.className='pcard'+(miss.length?' bad':'');
-    d.innerHTML=`<div class="t">${r.name}<span>${r.sid} · <a class="fixbtn" style="margin:0" data-edit="${r.uid}">✎ Edit</a></span></div><div class="pair"></div>`;
-    if(miss.length){
-      bad.push([r,miss]);
-      d.querySelector('.pair').innerHTML=['Front','Back'].map(()=>`<div class="blank"><b>⚠ Cannot generate</b><span>Missing: ${miss.join(', ')}</span></div>`).join('');
+    const all=missingOf(r),blk=blockingOf(r),d=document.createElement('div');d.className='pcard'+(blk.length?' bad':'');
+    const noPhoto=all.includes('Photo');
+    d.innerHTML=`<div class="t">${r.name}<span>${r.sid} · <a class="fixbtn" style="margin:0" data-edit="${r.uid}">✎ Edit</a></span></div>${!blk.length&&noPhoto?'<div class="nophoto">⚠ No photo — card will print with a grey placeholder</div>':''}<div class="pair"></div>`;
+    if(blk.length){
+      bad.push([r,all]);
+      d.querySelector('.pair').innerHTML=['Front','Back'].map(()=>`<div class="blank"><b>⚠ Cannot generate</b><span>Missing: ${all.join(', ')}</span></div>`).join('');
       d.insertAdjacentHTML('beforeend',`<span class="fixbtn" data-edit="${r.uid}">✎ Edit info to fix</span>`);
     }else{
-      const f=await drawFront(r),b=await drawBack(r);GEN.push({r,f,b});d.querySelector('.pair').append(f,b);
+      const f=await drawFront(r),b=await drawBack(r);GEN.push({r,f,b,nophoto:noPhoto});if(noPhoto)nop.push(r);d.querySelector('.pair').append(f,b);
     }
     $('pgrid').append(d);
   }
   $('pgrid').querySelectorAll('.fixbtn').forEach(x=>x.onclick=()=>openEdit(+x.dataset.edit));
-  const w=$('idwarn');
+  const w=$('idwarn');let html='';
   if(bad.length){
-    w.style.display='block';
-    w.innerHTML=`<b>⚠ ${bad.length} of ${sel.length} student${sel.length>1?'s are':' is'} missing information — ${bad.length>1?'their cards were':'the card was'} not generated.</b><br>`+
+    html+=`<b>⚠ ${bad.length} of ${sel.length} student${sel.length>1?'s are':' is'} missing information — ${bad.length>1?'their cards were':'the card was'} not generated.</b><br>`+
       (GEN.length?`You can proceed with the other ${GEN.length} card${GEN.length>1?'s':''}, or fix the missing info first.`:'Nothing can be printed until the missing info is added.')+
       '<br>'+bad.map(([r,m])=>`• ${r.name} (${r.sid}): ${m.join(', ')}`).join('<br>');
   }
+  if(nop.length){
+    html+=(html?'<hr style="border:0;border-top:1px solid #f1d58a;margin:8px 0">':'')+`<b>📷 Photo missing for ${nop.length} card${nop.length>1?'s':''} — still generated.</b><br>You’ll be asked to confirm before printing or downloading. Add a photo with ✎ Edit if you want it on the card.<br>`+nop.map(r=>`• ${r.name} (${r.sid})`).join('<br>');
+  }
+  w.style.display=html?'block':'none';w.innerHTML=html;
   $('idtitle').textContent=`ID Card Preview — ${GEN.length} of ${sel.length} ready`;
   $('dlall').disabled=$('prall').disabled=!GEN.length;
   $('dlall').textContent=GEN.length&&bad.length?`Download ${GEN.length} ready card${GEN.length>1?'s':''} (zip)`:'Download all (PNG)';
   $('prall').textContent=GEN.length&&bad.length?`Print ${GEN.length}`:'Print';
 }
 const blob=c=>new Promise(res=>c.toBlob(res,'image/png'));
-async function downloadAll(){
-  if(!GEN.length)return;const btn=$('dlall');btn.disabled=true;
+async function downloadAll(L){
+  L=L||GEN;if(!L.length)return;const btn=$('dlall');btn.disabled=true;
   const stamp=new Date().toISOString().slice(0,10), used={};
   try{
     const z=new JSZip(),fr=z.folder('Front_Side'),bk=z.folder('Back_Side'),dp=z.folder('Duplex_Print');
     let seq=0;
-    for(const g of GEN){
+    for(const g of L){
       let n=safe(g.r.sid);if(used[n]){n+='_'+(++used[n])}else used[n]=1;
       const fb=await blob(g.f),bb=await blob(g.b),q=String(++seq).padStart(4,'0');
       fr.file(n+'.png',fb);bk.file(n+'.png',bb);
       dp.file(`${q}_1_front_${n}.png`,fb);dp.file(`${q}_2_back_${n}.png`,bb);
     }
     const zb=await z.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(zb);a.download='ID Cards '+stamp+'.zip';a.click();
-    $('dlmsg').textContent=`Downloaded ID Cards ${stamp}.zip — Front_Side, Back_Side and Duplex_Print (${GEN.length} cards).`;
+    $('dlmsg').textContent=`Downloaded ID Cards ${stamp}.zip — Front_Side, Back_Side and Duplex_Print (${L.length} cards).`;
   }catch(e){$('dlmsg').textContent='Download failed: '+e.message}
   btn.disabled=false;
 }
 $('genbtn').onclick=openGen;
 $('idclose').onclick=()=>$('idov').style.display='none';
 $('idov').onclick=e=>{if(e.target.id==='idov')$('idov').style.display='none'};
-$('dlall').onclick=downloadAll;
-$('prall').onclick=()=>{
-  if(!GEN.length)return;
-  $('printarea').innerHTML=GEN.map(g=>`<div class="pg"><img src="${g.f.toDataURL('image/png')}"></div><div class="pg"><img src="${g.b.toDataURL('image/png')}"></div>`).join('');
+function withPhotoCheck(verb,run){
+  const np=GEN.filter(g=>g.nophoto);
+  if(!np.length)return run(GEN);
+  $('pcmsg').innerHTML=`<b>Photo missing</b><br>${np.length} of ${GEN.length} card${GEN.length>1?'s have':' has'} no photo:<br>`+np.map(g=>`• ${g.r.name} (${g.r.sid})`).join('<br>')+`<br><br>Do you still want to ${verb} ${np.length>1?'these cards':'this card'} without a photo?`;
+  $('pcyes').textContent=`Yes, ${verb} all ${GEN.length}`;
+  $('pcskip').style.display=np.length<GEN.length?'':'none';$('pcskip').textContent=`No, skip the ${np.length} without photo`;
+  $('pconf').style.display='flex';
+  $('pcyes').onclick=()=>{$('pconf').style.display='none';run(GEN)};
+  $('pcskip').onclick=()=>{$('pconf').style.display='none';run(GEN.filter(g=>!g.nophoto))};
+  $('pccancel').onclick=()=>{$('pconf').style.display='none'};
+}
+$('dlall').onclick=()=>withPhotoCheck('download',L=>downloadAll(L));
+function doPrint(L){
+  if(!L.length)return;
+  $('printarea').innerHTML=L.map(g=>`<div class="pg"><img src="${g.f.toDataURL('image/png')}"></div><div class="pg"><img src="${g.b.toDataURL('image/png')}"></div>`).join('');
   document.body.classList.add('printing');
   const done=()=>{document.body.classList.remove('printing');$('printarea').innerHTML='';window.removeEventListener('afterprint',done)};
   window.addEventListener('afterprint',done);
   setTimeout(()=>window.print(),150);
-};
+}
+$('prall').onclick=()=>{if(!GEN.length)return;withPhotoCheck('print',L=>doPrint(L))};
 const fin=document.createElement('input');fin.type='file';fin.accept='image/*';let upUid=null;
 fin.onchange=async e=>{const f=e.target.files[0];if(!f||upUid==null)return;
   const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
