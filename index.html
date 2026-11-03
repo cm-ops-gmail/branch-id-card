@@ -362,6 +362,24 @@
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);background:#1f1f1f;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:300}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #bfmain .crumb{color:var(--muted);cursor:pointer}#bfmain .crumb:hover{text-decoration:underline}
+
+  /* profile form typography (matches reference) */
+  #profpage .sect{font-size:19px;font-weight:700;color:#101828;margin:0 0 14px;letter-spacing:-.01em}
+  #profpage .card.pad{padding:20px 22px 24px}
+  #profpage .g3,#profpage .g4{gap:22px 17px}
+  #profpage .fg label{font-size:13.5px;font-weight:500;color:#101828;margin-bottom:10px}
+  #profpage .fg label i{font-style:normal;color:#e5233d;margin-left:2px}
+  #profpage .fi,#profpage .dobw{height:36px;border-radius:10px;border:1px solid #e5e7eb;box-shadow:0 1px 2px rgba(16,24,40,.07);font-size:13.5px;color:#101828;padding:0 14px;background-color:#fff}
+  #profpage .fi::placeholder{color:#6b7280}
+  #profpage select.fi{padding-right:34px;background-position:right 13px center}
+  #profpage select.fi.ph{color:#6b7280}
+  #profpage input[type=file].fi{padding:0 12px;line-height:34px;font-size:13.5px}
+  #profpage .dobw{position:relative;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+  #profpage .dobw svg{width:17px;height:17px;stroke:#6b7280;fill:none;stroke-width:1.6;flex:none}
+  #profpage .dobw input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+  #profpage .dobt.ph{color:#6b7280}
+  #profpage .sect+.g3,#profpage .sect+.g4{margin-top:0}
+  #profpage .card.pad>.sect:not(:first-child){margin-top:40px!important}
   #printarea{display:none}
   @media print{
     @page{size:85.6mm 54mm;margin:0}
@@ -1237,7 +1255,7 @@ function renderOrder(){
 // ---------- Student profile ----------
 function profOf(r){
   if(!PROF[r.sid]){const h=r.uid;PROF[r.sid]={name:r.name,phone:r.phone,email:'',emg:r.emg,relation:'',dob:`${1990+(h%14)}-${String(1+h%12).padStart(2,'0')}-${String(1+h%27).padStart(2,'0')}`,occupation:'Student',age:'18-24',gender:h%2?'Male':'Female',bg:r.bg,
-    nationality:'Bangladeshi',city:'Dhaka',zone:'',area:'',address:'Khilgaon, Dhaka',edu:'College',cls:'HSC 2nd Year',inst:'',gname:'MD. Didaiul Alam',gnum:'',gnid:'',nid:'',visit:'',verdict:'',prefProg:'',exam:'',country:'',score:'',showPref:false}}
+    nationality:'Bangladeshi',city:'Dhaka',zone:'',area:'',address:'Khilgaon, Dhaka',edu:'College',cls:'HSC 2nd Year',inst:'Milestone College',gname:'MD. Didaiul Alam',gnum:'',gnid:'',nid:'',visit:'',verdict:'',prefProg:'',exam:'',country:'',score:'',showPref:false}}
   return PROF[r.sid];
 }
 let ptab='profile',profPhoto;
@@ -1247,7 +1265,9 @@ function openProfile(sid,tab){
   curStu=sid;ptab=tab||'profile';profPhoto=undefined;showPage('profpage');renderProfile();
 }
 const opt=(l,v,ph)=>`<option value="">${ph||'Select'}</option>`+l.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('');
-const fld=(id,l,v,o={})=>`<div class="fg ${o.full?'full':''}"><label>${l}${o.req?' <i style="color:#dc2626">*</i>':''}</label>${o.sel?`<select class="fi ${v?'':'ph'}" id="${id}">${opt(o.sel,v,o.ph)}</select>`:`<input class="fi" id="${id}" type="${o.type||'text'}" value="${(v||'').toString().replace(/"/g,'&quot;')}" placeholder="${o.ph||''}">`}</div>`;
+const shortD=v=>{const d=new Date(v);return v&&!isNaN(d)?`${d.getDate()} ${MN[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`:''};
+const INSTS=['Milestone College','Notre Dame College','Dhaka College','Holy Cross College','Viqarunnisa Noon School & College','Other'];
+const fld=(id,l,v,o={})=>`<div class="fg ${o.full?'full':''}"><label>${l}${o.req?' <i style="color:#dc2626">*</i>':''}</label>${o.dob?`<div class="dobw"><span class="dobt ${v?'':'ph'}">${v?shortD(v):(o.ph||'Select date')}</span><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><input id="${id}" type="date" value="${v||''}"></div>`:o.sel?`<select class="fi ${v?'':'ph'}" id="${id}">${opt(o.sel,v,o.ph)}</select>`:`<input class="fi" id="${id}" type="${o.type||'text'}" value="${(v||'').toString().replace(/"/g,'&quot;')}" placeholder="${o.ph||''}">`}</div>`;
 function readForm(P){
   const m={name:'f_name',phone:'f_phone',email:'f_email',emg:'f_emg',relation:'f_rel',dob:'f_dob',occupation:'f_occ',age:'f_age',gender:'f_gender',bg:'f_bg',nationality:'f_nat',city:'f_city',zone:'f_zone',area:'f_area',address:'f_addr',edu:'f_edu',cls:'f_cls',inst:'f_inst',gname:'f_gname',gnum:'f_gnum',nid:'f_nid',visit:'f_visit',verdict:'p_verdict',prefProg:'p_prog',exam:'p_exam',country:'p_country',score:'p_score'};
   for(const k in m){const e=$(m[k]);if(e)P[k]=e.value.trim()}
@@ -1266,13 +1286,13 @@ function renderProfile(){
       <button class="btn-new sm" data-toast="New order creation isn’t part of this demo">New Order →</button></div>
     <div class="card pad" style="margin-top:14px"><div class="sect">Profile</div>
       <div class="g3">${fld('f_name','Name',P.name,{req:1})}${fld('f_phone','Phone',P.phone,{req:1})}${fld('f_email','Email',P.email,{ph:'Enter email address'})}
-      ${fld('f_emg','Emergency contact',P.emg,{req:1})}${fld('f_rel','Relation',P.relation,{req:1,sel:['Child','Father','Mother','Brother','Sister','Spouse','Guardian'],ph:'Select relation'})}${fld('f_dob','Date of birth',P.dob,{type:'date'})}
+      ${fld('f_emg','Emergency contact',P.emg,{req:1})}${fld('f_rel','Relation',P.relation,{req:1,sel:['Child','Father','Mother','Brother','Sister','Spouse','Guardian'],ph:'Select relation'})}${fld('f_dob','Date of birth',P.dob,{dob:1,ph:'Select date of birth'})}
       ${fld('f_occ','Occupation',P.occupation,{sel:['Student','Job holder','Business','Other']})}${fld('f_age','Age group',P.age,{sel:['<18','18-24','25-34','35+']})}${fld('f_gender','Gender',P.gender,{sel:['Male','Female','Other']})}
       ${fld('f_bg','Blood Group',P.bg,{sel:BLOODS})}</div>
       <div class="sect" style="margin-top:20px">Location</div>
       <div class="g3">${fld('f_nat','Nationality',P.nationality,{sel:['Bangladeshi','Indian','Other']})}${fld('f_city','City',P.city,{sel:['Dhaka','Chattogram','Sylhet','Rajshahi']})}${fld('f_zone','Zone',P.zone,{sel:['Dhanmondi','Mirpur','Uttara','Moghbazar','Khilgaon','Diabari'],ph:'Select zone'})}
       ${fld('f_area','Area',P.area,{sel:['Sector 3','Sector 4','Sector 6','Sector 10'],ph:'Select area'})}${fld('f_addr','Address',P.address,{full:1})}</div>
-      <div class="sect" style="margin-top:20px">Education</div><div class="g3">${fld('f_edu','Education level',P.edu,{sel:['School','College','University','Other'],ph:'Select education level'})}${fld('f_cls','Class',P.cls,{sel:['Class 8','Class 9','Class 10','HSC 1st Year','HSC 2nd Year','Honours'],ph:'Select class'})}${fld('f_inst','Institute name',P.inst,{ph:'Enter institute name'})}</div>
+      <div class="sect" style="margin-top:20px">Education</div><div class="g3">${fld('f_edu','Education level',P.edu,{sel:['School','College','University','Other'],ph:'Select education level'})}${fld('f_cls','Class',P.cls,{sel:['Class 8','Class 9','Class 10','HSC 1st Year','HSC 2nd Year','Honours'],ph:'Select class'})}${fld('f_inst','Institute name',P.inst,{sel:(P.inst&&!INSTS.includes(P.inst)?[P.inst,...INSTS]:INSTS),ph:'Select institute'})}</div>
       <div class="sect" style="margin-top:20px">Identification Documents</div>
       <div class="g3">${fld('f_gname','Guardian Name',P.gname)}${fld('f_gnum','Guardian Number',P.gnum,{ph:'Enter guardian number'})}<div class="fg"><label>Guardian NID upload</label><input class="fi" type="file"></div>
       <div class="fg"><label>Student Photo</label><div class="phrow2">${p2?`<img src="${p2}">`:'<div class="nop2">!</div>'}<input class="fi" type="file" accept="image/*" id="f_photo"></div><button type="button" class="mbtn" id="phonebtn" style="margin-top:6px">📱 Phone Photos</button></div>${fld('f_nid','NID Number',P.nid,{ph:'Enter NID Number'})}<div class="fg"><label>Student NID</label><input class="fi" type="file"></div>
@@ -1290,6 +1310,7 @@ function renderProfile(){
   $('profpage').querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{ptab=b.dataset.pt;renderProfile()});
   const pbtn=$('phonebtn');if(pbtn)pbtn.onclick=()=>{if(PH.open&&PH.sid===curStu)closePhone();else startPhone(curStu)};
   drawPhonePanel();
+  document.querySelectorAll('.dobw input').forEach(i=>i.onclick=()=>{try{i.showPicker()}catch(_){}});
   const ap=$('addpref');if(ap)ap.onclick=()=>{readForm(P);P.showPref=true;renderProfile()};
   const pf=$('f_photo');if(pf)pf.onchange=async e=>{const f=e.target.files[0];if(!f)return;const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
     cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);profPhoto=cv.toDataURL('image/jpeg',.88);
@@ -1307,7 +1328,7 @@ function renderProfile(){
 }
 
 // open order from table links
-document.addEventListener('change',e=>{if(e.target.matches&&e.target.matches('select.fi'))e.target.classList.toggle('ph',!e.target.value)});
+document.addEventListener('change',e=>{if(e.target.matches&&e.target.matches('select.fi'))e.target.classList.toggle('ph',!e.target.value);const w=e.target.closest&&e.target.closest('.dobw');if(w){const t=w.querySelector('.dobt');t.textContent=e.target.value?shortD(e.target.value):'Select date of birth';t.classList.toggle('ph',!e.target.value)}});
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a.oid[data-oid]');if(a){e.preventDefault();openOrder(+a.dataset.oid);return}
   const n=e.target.closest&&e.target.closest('a.sname[data-stu]');if(n){e.preventDefault();openProfile(n.dataset.stu,'profile')}});
 
