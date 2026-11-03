@@ -867,12 +867,12 @@ async function drawFront(r){
     if(img){const sc=Math.max(bw/img.width,bh/img.height),w=img.width*sc,h=img.height*sc;x.drawImage(img,bx+(bw-w)/2,by+(bh-h)*.3,w,h)}
     else{x.fillStyle='#d6d6d6';x.fillRect(bx,by,bw,bh);x.fillStyle='#aaa';x.beginPath();x.arc(bx+bw/2,by+bh*.37,bw*.18,0,7);x.fill();x.beginPath();x.ellipse(bx+bw/2,by+bh*.95,bw*.35,bh*.3,0,0,7);x.fill()}
   };
-  if(!kids){x.save();rr(x,632,150,273,284,38);x.clip();drawPhoto(632,150,273,284);x.restore()}
+  if(!kids){if(img){x.save();rr(x,632,150,273,284,38);x.clip();drawPhoto(632,150,273,284);x.restore()}}
   else{
     const cx=755,cy=232,N=12;
     const cloud=(R,rb)=>{x.beginPath();x.arc(cx,cy,R,0,7);for(let i=0;i<N;i++){const a=i*2*Math.PI/N;x.moveTo(cx+R*Math.cos(a)+rb,cy+R*Math.sin(a));x.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),rb,0,7)}};
-    x.fillStyle='#fff';cloud(88,44);x.fill();
-    x.save();cloud(88,40);x.clip();x.fillStyle='#e3e3e3';x.fillRect(cx-150,cy-150,300,300);drawPhoto(cx-132,cy-132,264,264);x.restore();
+    if(img){x.fillStyle='#fff';cloud(88,44);x.fill();
+    x.save();cloud(88,40);x.clip();x.fillStyle='#e3e3e3';x.fillRect(cx-150,cy-150,300,300);drawPhoto(cx-132,cy-132,264,264);x.restore()}
     // KIDS ENGLISH badge
     x.save();x.translate(758,455);x.rotate(-.07);x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';
     const L=[['K','#7ac143',-62],['I','#ffc20e',-22],['D','#f7941d',20],['S','#1c9ad6',62]];
@@ -912,7 +912,7 @@ async function openGen(){
   for(const r of sel){
     const all=missingOf(r),blk=blockingOf(r),d=document.createElement('div');d.className='pcard'+(blk.length?' bad':'');
     const noPhoto=all.includes('Photo');
-    d.innerHTML=`<div class="t">${r.name}<span>${r.sid} · <a class="fixbtn" style="margin:0" data-edit="${r.uid}">✎ Edit</a></span></div>${!blk.length&&noPhoto?'<div class="nophoto">⚠ No photo — card will print with a grey placeholder</div>':''}<div class="pair"></div>`;
+    d.innerHTML=`<div class="t">${r.name}<span>${r.sid} · <a class="fixbtn" style="margin:0" data-edit="${r.uid}">✎ Edit</a></span></div>${!blk.length&&noPhoto?'<div class="nophoto">⚠ No photo — card will print without a photo area</div>':''}<div class="pair"></div>`;
     if(blk.length){
       bad.push([r,all]);
       d.querySelector('.pair').innerHTML=['Front','Back'].map(()=>`<div class="blank"><b>⚠ Cannot generate</b><span>Missing: ${all.join(', ')}</span></div>`).join('');
