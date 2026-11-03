@@ -285,6 +285,83 @@
   select.fi.ph{color:#8a8a8a}
   #profpage .card.pad,#ordpage .card.pad{box-shadow:0 1px 3px rgba(0,0,0,.04)}
   #profpage .fi::placeholder{color:#8a8a8a}
+  /* ---- Create new Batches (form from Class Grid prototype) ---- */
+  .bfwrap{flex:1;overflow:auto;padding:20px 22px;background:#f5f5f3}
+  .bf-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px 26px 22px;box-shadow:0 1px 2px rgba(20,24,34,.05);margin-bottom:18px;max-width:1000px}
+  .bf-card h2{font-size:20px;font-weight:700;margin:0 0 22px}
+  .bf-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 22px;margin-bottom:20px}
+  .bf-f{display:flex;flex-direction:column;gap:9px;min-width:0;position:relative}
+  .bf-f.full{grid-column:1/-1}
+  .bf-f>label,.bf-lab{font-size:14px;font-weight:600}
+  .bf-f>label i,.bf-lab i{color:#e5233d;font-style:normal;margin-left:3px}
+  .bf-f.err>label,.bf-f.err>.bf-lab{color:#e5233d}
+  .bf-f.err .bf-in,.bf-f.err .bf-dayrow{border-color:#e5233d}
+  .bf-in{font:inherit;font-size:14px;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:11px;height:42px;padding:0 15px;width:100%;box-sizing:border-box;box-shadow:0 1px 2px rgba(20,24,34,.05)}
+  .bf-in::placeholder{color:#9a9a96}
+  .bf-in:focus{outline:none;border-color:#b0b0ac}
+  .bf-sel{appearance:none;-webkit-appearance:none;padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238891A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center}
+  .bf-hint{font-size:11.5px;color:var(--muted)}
+  .bf-ic{position:relative}
+  .bf-ic svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:#9a9a96;pointer-events:none}
+  .bf-ic .bf-in{padding-left:45px}
+  .bf-ic .ph{position:absolute;left:45px;top:50%;transform:translateY(-50%);color:#9a9a96;font-size:14px;pointer-events:none;display:none}
+  .bf-ic.empty .ph{display:block}.bf-ic.empty .bf-in{color:transparent}
+  .bf-ic input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .bf-dayrow{display:flex;flex-wrap:wrap;gap:12px 24px;padding:2px 0;border:1px solid transparent;border-radius:10px}
+  .bf-dayc{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none}
+  .bf-dayc input,.bf-optl input{appearance:none;-webkit-appearance:none;width:20px;height:20px;border:1.5px solid #b0b0ac;border-radius:6px;background:#fff;margin:0;cursor:pointer;display:grid;place-content:center}
+  .bf-dayc input:checked,.bf-optl input:checked{background:#111;border-color:#111}
+  .bf-dayc input:checked::after,.bf-optl input:checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  .bf-dd{position:relative}
+  .bf-ddbtn{text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bf-ddbtn .ph{color:#9a9a96}
+  .bf-ddpanel{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px rgba(20,24,34,.16);max-height:340px;overflow:auto;padding:6px}
+  .bf-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border-radius:8px}
+  .bf-opt:hover{background:#f3f3f1}
+  .bf-optl{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;flex:1;min-width:0}
+  .bf-optl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bf-cnt{display:flex;flex-shrink:0;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .bf-cnt button{font:inherit;font-size:12.5px;font-weight:600;width:32px;height:28px;border:none;background:#fff;color:#b0b0ac;cursor:pointer}
+  .bf-cnt button+button{border-left:1px solid var(--border)}
+  .bf-cnt button.on{background:#111;color:#fff}
+  .bf-block{border:1px solid var(--border);background:var(--panel);border-radius:14px;margin-top:14px;overflow:hidden}
+  .bf-bh{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;background:#fff;user-select:none}
+  .bf-bh .t{font-size:14px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bf-bh .t small{font-weight:500;color:var(--muted);margin-left:8px}
+  .bf-bh .chev{color:#9a9a96;transition:transform .12s;font-size:12px}
+  .bf-block.open .bf-bh .chev{transform:rotate(90deg)}
+  .bf-bb{display:none;padding:20px 18px 16px;border-top:1px solid var(--border)}
+  .bf-block.open .bf-bb{display:block}
+  .bf-bb .bf-grid{margin-bottom:0}
+  .bf-tools{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .bf-mini{font:inherit;font-size:12px;font-weight:600;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer}
+  .bf-mini:hover{border-color:#b0b0ac}
+  .bf-danger{color:#e5233d;margin-left:auto}
+  .bf-group{border:1px solid var(--border);background:#fff;border-radius:14px;margin-top:16px;overflow:hidden}
+  .bf-gh{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+  .bf-gh .t{font-size:15px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bf-gh .t small{font-size:12px;font-weight:500;color:var(--muted);margin-left:10px}
+  .bf-gh .chev{color:#9a9a96;font-size:12px;transition:transform .12s}
+  .bf-group:not(.closed) .bf-gh .chev{transform:rotate(90deg)}
+  .bf-gb{padding:0 16px 16px;border-top:1px solid var(--border)}
+  .bf-group.closed .bf-gb{display:none}
+  .bf-gb .bf-block{margin-left:20px;margin-top:12px;border-left:3px solid var(--blue)}
+  .bf-foot{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-top:30px}
+  .bf-sum{font-size:12.5px;color:var(--muted);margin-right:auto}
+  .bf-create{font:inherit;font-size:14.5px;font-weight:600;background:#111;color:#fff;border:none;border-radius:12px;height:44px;padding:0 34px;cursor:pointer}
+  .bf-create:hover{opacity:.9}
+  .bf-donehead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .bf-donehead h2{margin:0}
+  .bb-st{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .bb-st.ok{background:#e8f7ec;color:#166534}.bb-st.bad{background:#fde8e8;color:#c62828}
+  .bb-wrap{overflow:auto;border-top:1px solid var(--border)}
+  .utiltable{width:100%;border-collapse:collapse;font-size:12.5px}
+  .utiltable th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .utiltable td{padding:9px 10px;border-bottom:1px solid #eeeeec;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bfnote{font-size:11.5px;color:var(--muted);margin:4px 2px 20px;max-width:1000px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);background:#1f1f1f;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:300}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #bfmain .crumb{color:var(--muted);cursor:pointer}#bfmain .crumb:hover{text-decoration:underline}
   #printarea{display:none}
   @media print{
     @page{size:85.6mm 54mm;margin:0}
@@ -376,7 +453,7 @@
       <h1>All Batches</h1>
       <div class="actions">
         <button class="btn-filter" id="bfbtn"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filters</button>
-        <button class="btn-new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create new Batches</button>
+        <button class="btn-new" id="newbatch"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create new Batches</button>
       </div>
     </div>
     <div class="filters" id="bfilters"></div>
@@ -389,6 +466,43 @@
     </div>
     <div class="tablewrap"><table id="tbl2"></table></div>
     <div class="pager" id="pager"></div>
+  </main>
+
+  <main class="main" id="bfmain" style="display:none">
+    <div class="head">
+      <h1><span class="crumb" id="bfcrumb">Batches</span> <span style="color:var(--muted)">/</span> Create new Batches</h1>
+      <div class="actions"><button class="btn-filter" id="bfback"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to Batches</button></div>
+    </div>
+    <div class="bfwrap">
+      <div class="bf-card">
+        <h2>Batch Information</h2>
+        <div class="bf-grid">
+          <div class="bf-f"><label for="bfBranch">Select branch <i>*</i></label><select id="bfBranch" class="bf-in bf-sel"></select></div>
+          <div class="bf-f" id="bfProgF"><label>Select program <i>*</i></label>
+            <div class="bf-dd" id="bfDD">
+              <button type="button" class="bf-in bf-sel bf-ddbtn" id="bfDDBtn"><span id="bfDDTxt" class="ph">Select program</span></button>
+              <div class="bf-ddpanel" id="bfDDPanel" hidden></div>
+            </div>
+            <div class="bf-hint">Tick every program you need. Beside each one choose <b>1</b> or <b>2</b> — that many batches are created for it. Need more? Use <b>Duplicate this batch</b> inside a batch.</div>
+          </div>
+        </div>
+
+        <div id="bfBlocks"></div>
+
+        <div class="bf-foot">
+          <span id="bfSummary" class="bf-sum"></span>
+          <button type="button" class="bf-create" id="bfCreate">Create</button>
+        </div>
+      </div>
+
+      <section class="bf-card" id="bfDonePanel" hidden>
+        <div class="bf-donehead"><h2 id="bfDoneTitle">Created batches</h2>
+          <span><button type="button" class="bf-mini" id="bfCsv">Download CSV</button> <button type="button" class="bf-mini" id="bfDoneClear">Clear list</button></span></div>
+        <div class="bb-wrap" id="bfDoneWrap" style="max-height:340px"></div>
+      </section>
+
+      <div class="bfnote">Nothing is sent to a server — created batches stay in this browser, appear in the All Batches table, and the form saves itself so a refresh won't lose work.</div>
+    </div>
   </main>
 </div>
 
@@ -414,6 +528,7 @@
 </div>
 
 <div id="printarea"></div>
+<div class="toast" id="bftoast"></div>
 <div id="tip"></div>
 <div id="capui">
   <h2 id="capname">Student photo</h2>
@@ -1059,7 +1174,7 @@ function wireCommon(root){
   const back=root.querySelector('[data-back]');if(back)back.onclick=e=>{e.preventDefault();backFn&&backFn()};
 }
 function rerender(){if($('ordpage').style.display!=='none'&&curOrder!=null)renderOrder();else if($('profpage').style.display!=='none')renderProfile()}
-function hidePages(){$('ordpage').style.display=$('profpage').style.display='none'}
+function hidePages(){$('ordpage').style.display=$('profpage').style.display='none';$('bfmain').style.display='none'}
 function showPage(id){$('ordmain').style.display=$('batchmain').style.display='none';hidePages();$(id).style.display='block';setNav('Orders');$(id).scrollTop=0}
 
 // ---------- Order page ----------
@@ -1263,6 +1378,210 @@ function drawPhonePanel(){
     conn.send({type:'photo',data:o.toDataURL('image/jpeg',.88)});$('capsend').disabled=true;$('capsend').textContent='Sending…';msg('')};
 })();
 
+// ---------- Create new Batches (form from Class Grid prototype) ----------
+(function(){
+  const BF_KEY='cos-idbatch-form';
+  const BFP=Object.keys(PROGRAMS);                    // programs in this prototype
+  const BF_TEACH=[...new Set(TEACH)].sort();
+  const BF_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const BF_REQ=[["name","Batch name"],["internal","Internal name"],["as","Admission start date"],["ae","Admission end date"],["cs","Class start date"],["ce","Class end date"],["days","Class day"],["st","Start time"],["et","End time"],["cap","Capacity"]];
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let bf={branch:'Online',sel:{},data:{},open:{},showErr:false,done:[],dd:false,gclosed:{}};
+  function toast(msg){const t=$('bftoast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
+  function bfSave(){try{localStorage.setItem(BF_KEY,JSON.stringify({branch:bf.branch,sel:bf.sel,data:bf.data,open:bf.open,done:bf.done}))}catch(_){}}
+  function bfLoad(){try{const d=JSON.parse(localStorage.getItem(BF_KEY)||'null');if(d){bf.branch=BRANCHES.includes(d.branch)?d.branch:'Online';bf.sel=d.sel||{};bf.data=d.data||{};bf.open=d.open||{};bf.done=d.done||[]}}catch(_){}}
+  const progCode=p=>p.split(/[\s+]+/).filter(w=>/^[A-Za-z]/.test(w)).map(w=>w[0]).join('').toUpperCase();
+  function newData(p,n){const b=bf.branch==='Online'?'ONL':bf.branch.slice(0,3).toUpperCase();
+    return {name:`${p} · Batch ${n}`,internal:`${b}-${progCode(p)}-B${n}`,as:'',ae:'',cs:'',ce:'',outline:'',teacher:'',days:[],st:'',et:'',cap:'',status:'Active',color:'',wa:''}}
+  function blocks(){const out=[];BFP.forEach(p=>{for(let n=1;n<=(bf.sel[p]||0);n++){const key=p+'|'+n;if(!bf.data[key])bf.data[key]=newData(p,n);out.push({key,p,n,of:bf.sel[p]})}});return out}
+  const outlinesFor=p=>[`${p} — Standard`,`${p} — Fast-track`,`${p} — Weekend`];
+  function missing(key){const r=bf.data[key];if(!r)return[];
+    const m=BF_REQ.filter(([k])=>k==='days'?!r.days.length:k==='cap'?!(+r.cap>0):!String(r[k]||'').trim()).map(x=>x[0]);
+    if(r.as&&r.ae&&r.ae<r.as)m.push('ae');
+    if(r.cs&&r.ce&&r.ce<r.cs)m.push('ce');
+    if(r.st&&r.et&&r.et<=r.st)m.push('et');
+    if(r.internal&&Object.keys(bf.data).some(k=>k!==key&&bf.sel[k.split('|')[0]]>=+k.split('|')[1]&&bf.data[k].internal.trim().toLowerCase()===r.internal.trim().toLowerCase()))m.push('internal');
+    return [...new Set(m)]}
+
+  // ---- branch + program dropdown ----
+  $('bfBranch').innerHTML=BRANCHES.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  $('bfBranch').addEventListener('change',e=>{bf.branch=e.target.value;bfSave()});
+  function bfRenderDD(){
+    const n=Object.keys(bf.sel).filter(p=>bf.sel[p]).length,tot=Object.values(bf.sel).reduce((a,b)=>a+b,0);
+    $('bfDDTxt').className=n?'':'ph';
+    $('bfDDTxt').textContent=n?`${n} program${n>1?'s':''} selected · ${tot} batch${tot>1?'es':''}`:'Select program';
+    $('bfDDPanel').hidden=!bf.dd;
+    if(bf.dd)$('bfDDPanel').innerHTML=BFP.map(p=>`<div class="bf-opt"><label class="bf-optl"><input type="checkbox" data-p="${esc(p)}" ${bf.sel[p]?'checked':''}><span title="${esc(p)}">${esc(p)}</span></label>
+      <div class="bf-cnt"><button type="button" data-p="${esc(p)}" data-c="1" class="${bf.sel[p]===1?'on':''}">1</button><button type="button" data-p="${esc(p)}" data-c="2" class="${bf.sel[p]===2?'on':''}">2</button>${bf.sel[p]>2?`<button type="button" class="on" data-p="${esc(p)}" data-c="${bf.sel[p]}">${bf.sel[p]}</button>`:''}</div></div>`).join('');
+  }
+  function bfPick(p,c){if(c)bf.sel[p]=c;else delete bf.sel[p];$('bfProgF').classList.remove('err');bfRenderDD();bfRenderBlocks();bfSave()}
+  $('bfDDBtn').addEventListener('click',e=>{e.stopPropagation();bf.dd=!bf.dd;bfRenderDD()});
+  $('bfDDPanel').addEventListener('click',e=>{e.stopPropagation();const p=e.target.dataset.p;if(p==null)return;
+    if(e.target.dataset.c)bfPick(p,+e.target.dataset.c);
+    else if(e.target.type==='checkbox')bfPick(p,e.target.checked?1:0)});
+  document.addEventListener('click',e=>{if(bf.dd&&!$('bfDD').contains(e.target)){bf.dd=false;bfRenderDD()}});
+
+  // ---- batch blocks ----
+  const ICO_CAL=`<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`;
+  const ICO_CLK=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+  function field(key,f,label,req,inner,cls){return `<div class="bf-f ${cls||''}" data-wrap="${f}"><label>${label}${req?' <i>*</i>':''}</label>${inner}</div>`}
+  function blockHTML(b,i,total){
+    const r=bf.data[b.key],k=esc(b.key),m=bf.showErr?missing(b.key):[];
+    const E=f=>m.includes(f)?'err':'';
+    const txt=(f,label,req)=>field(b.key,f,label,req,`<input class="bf-in" data-k="${k}" data-f="${f}" value="${esc(r[f])}" placeholder="Write here">`,E(f));
+    const dt=(f,label,ph)=>field(b.key,f,label,true,`<div class="bf-ic ${r[f]?'':'empty'}">${ICO_CAL}<span class="ph">${ph}</span><input class="bf-in" type="date" data-k="${k}" data-f="${f}" value="${esc(r[f])}"></div>`,E(f));
+    const tm=(f,label,ph)=>field(b.key,f,label,true,`<div class="bf-ic ${r[f]?'':'empty'}">${ICO_CLK}<span class="ph">${ph}</span><input class="bf-in" type="time" data-k="${k}" data-f="${f}" value="${esc(r[f])}"></div>`,E(f));
+    const sel=(f,label,list,ph)=>field(b.key,f,label,false,`<select class="bf-in bf-sel" data-k="${k}" data-f="${f}">${ph!=null?`<option value="">${ph}</option>`:''}${list.map(o=>`<option ${o===r[f]?'selected':''}>${esc(o)}</option>`).join('')}</select>`);
+    const days=`<div class="bf-f full ${E('days')}" data-wrap="days"><div class="bf-lab">Class day <i>*</i></div><div class="bf-dayrow">${BF_DAYS.map(d=>`<label class="bf-dayc"><input type="checkbox" data-k="${k}" data-d="${d}" ${r.days.includes(d)?'checked':''}>${d}</label>`).join('')}</div></div>`;
+    return `<div class="bf-block ${bf.open[b.key]?'open':''}" data-block="${k}">
+      <div class="bf-bh" data-tg="${k}"><span class="chev">▶</span><span class="t">Batch ${b.n}<small>of ${b.of}</small></span><span class="bb-st" data-chip="${k}"></span></div>
+      <div class="bf-bb"><div class="bf-grid">
+        ${txt('name','Batch name',true)}${txt('internal','Internal name',true)}
+        ${dt('as','Admission start date','Pick admission start date')}${dt('ae','Admission end date','Pick admission end date')}
+        ${dt('cs','Class start date','Pick class start date')}${dt('ce','Class end date','Pick class end date')}
+        ${sel('outline','Select Program Outline',outlinesFor(b.p),'Select outline')}${sel('teacher','Preferred Teacher',BF_TEACH,'Select teacher')}
+        ${days}
+        ${tm('st','Start time','Select start time')}${tm('et','End time','Select end time')}
+        ${field(b.key,'cap','Capacity',true,`<input class="bf-in" type="number" min="1" data-k="${k}" data-f="cap" value="${esc(r.cap)}" placeholder="Write here">`,E('cap'))}
+        ${sel('status','Status',['Active','Inactive'])}
+        ${field(b.key,'color','Color code',false,`<input class="bf-in" data-k="${k}" data-f="color" value="${esc(r.color)}" placeholder="#ffffff">`)}
+        ${field(b.key,'wa','WhatsApp join URL',false,`<input class="bf-in" data-k="${k}" data-f="wa" value="${esc(r.wa)}" placeholder="https://chat.whatsapp.com/...">`)}
+      </div>
+      <div class="bf-tools"><button type="button" class="bf-mini" data-dup="${k}">⧉ Duplicate this batch</button>${total>1?`<button type="button" class="bf-mini" data-copy="${k}">Copy dates, days, time &amp; capacity to all other batches</button>`:''}<button type="button" class="bf-mini bf-danger" data-del="${k}">Remove this batch</button></div>
+      </div></div>`;
+  }
+  function chip(key){const c=document.querySelector(`[data-chip="${key.replace(/"/g,'\\"')}"]`);if(!c)return;
+    const m=missing(key);c.className='bb-st '+(m.length?'bad':'ok');c.textContent=m.length?`${m.length} to fill`:'Ready'}
+  function bfSummary(){
+    const bl=blocks(),ok=bl.filter(b=>!missing(b.key).length).length;
+    $('bfSummary').innerHTML=bl.length?`<b>${bl.length}</b> batch${bl.length>1?'es':''} to create · <b>${ok}</b> ready`:'Select at least one program to start.';
+    $('bfCreate').textContent=bl.length>1?`Create ${bl.length} batches`:'Create';
+  }
+  function gchip(p){const c=document.querySelector(`[data-gchip="${p.replace(/"/g,'\\"')}"]`);if(!c)return;
+    const ks=blocks().filter(b=>b.p===p),bad=ks.filter(b=>missing(b.key).length).length;
+    c.className='bb-st '+(bad?'bad':'ok');c.textContent=bad?`${ks.length-bad}/${ks.length} ready`:'All ready'}
+  function bfRenderBlocks(){
+    const bl=blocks();
+    if(bl.length&&!bl.some(b=>bf.open[b.key]))bf.open[bl[0].key]=true;
+    $('bfBlocks').innerHTML=BFP.filter(p=>bf.sel[p]).map(p=>{
+      const mine=bl.filter(b=>b.p===p),pe=esc(p);
+      return `<div class="bf-group ${bf.gclosed[p]?'closed':''}" data-group="${pe}">
+        <div class="bf-gh" data-gtg="${pe}"><span class="chev">▶</span><span class="t">${pe}<small>${mine.length} batch${mine.length>1?'es':''}</small></span><span class="bb-st" data-gchip="${pe}"></span>
+          <button type="button" class="bf-mini" data-gadd="${pe}">+ Add batch</button></div>
+        <div class="bf-gb">${mine.map(b=>blockHTML(b,0,bl.length)).join('')}</div></div>`;
+    }).join('');
+    bl.forEach(b=>chip(b.key));[...new Set(bl.map(b=>b.p))].forEach(gchip);bfSummary();
+  }
+  $('bfBlocks').addEventListener('input',e=>{
+    const k=e.target.dataset.k,f=e.target.dataset.f;if(!k||!f||!bf.data[k])return;
+    bf.data[k][f]=e.target.value;
+    const ic=e.target.closest('.bf-ic');if(ic)ic.classList.toggle('empty',!e.target.value);
+    const w=e.target.closest('.bf-f');if(w)w.classList.remove('err');
+    chip(k);gchip(k.split('|')[0]);bfSummary();bfSave();
+  });
+  $('bfBlocks').addEventListener('change',e=>{
+    const k=e.target.dataset.k;if(!k||!bf.data[k])return;
+    if(e.target.dataset.d){const d=e.target.dataset.d,a=bf.data[k].days;e.target.checked?(a.includes(d)||a.push(d)):a.splice(a.indexOf(d),1);
+      e.target.closest('.bf-f').classList.remove('err');chip(k);gchip(k.split('|')[0]);bfSummary();bfSave()}
+    else if(e.target.tagName==='SELECT'){bf.data[k][e.target.dataset.f]=e.target.value;bfSave()}
+  });
+  $('bfBlocks').addEventListener('click',e=>{
+    const ga=e.target.closest('[data-gadd]'),gt=e.target.closest('[data-gtg]');
+    if(ga){e.stopPropagation();const p=ga.dataset.gadd;return bfDup(p+'|'+bf.sel[p])}
+    if(gt&&!e.target.closest('[data-tg]')){const p=gt.dataset.gtg;bf.gclosed[p]=!bf.gclosed[p];gt.parentNode.classList.toggle('closed',!!bf.gclosed[p]);return}
+    const tg=e.target.closest('[data-tg]'),cp=e.target.closest('[data-copy]'),dp=e.target.closest('[data-dup]'),dl=e.target.closest('[data-del]');
+    if(dp)bfDup(dp.dataset.dup);
+    else if(dl)bfDel(dl.dataset.del);
+    else if(cp){
+      const src=bf.data[cp.dataset.copy],cnt=blocks().filter(b=>b.key!==cp.dataset.copy);
+      cnt.forEach(b=>{const d=bf.data[b.key];['as','ae','cs','ce','st','et','cap','status'].forEach(f=>{d[f]=src[f]});d.days=[...src.days]});
+      bfRenderBlocks();bfSave();toast(`Copied to ${cnt.length} other batch${cnt.length>1?'es':''}`);
+    }else if(tg){bf.open[tg.dataset.tg]=!bf.open[tg.dataset.tg];tg.parentNode.classList.toggle('open',bf.open[tg.dataset.tg]);bfSave()}
+  });
+
+  // ---- add / remove batches inside one program (keys are "program|n"; later batches shift to keep numbering contiguous) ----
+  function bfShift(p,from,to,dir){
+    const idx=[];for(let n=from;n<=to;n++)idx.push(n);if(dir>0)idx.reverse();
+    idx.forEach(n=>{const a=p+'|'+n,b=p+'|'+(n+dir);bf.data[b]=bf.data[a];if(bf.open[a]!==undefined)bf.open[b]=bf.open[a];delete bf.data[a];delete bf.open[a]});
+  }
+  function bfRenum(p,n){const d=bf.data[p+'|'+n];d.name=d.name.replace(/Batch \d+\s*$/,'Batch '+n);d.internal=d.internal.replace(/-B\d+(-copy)?$/,'-B'+n)}
+  function bfDup(key){
+    const [p,ns]=key.split('|'),n=+ns,cnt=bf.sel[p];
+    bfShift(p,n+1,cnt,+1);
+    bf.data[p+'|'+(n+1)]=JSON.parse(JSON.stringify(bf.data[key]));bf.open[p+'|'+(n+1)]=true;
+    bf.sel[p]=cnt+1;for(let i=n+1;i<=cnt+1;i++)bfRenum(p,i);
+    bfRenderDD();bfRenderBlocks();bfSave();toast(`Batch ${n+1} added to ${p}`);
+  }
+  function bfDel(key){
+    const [p,ns]=key.split('|'),n=+ns,cnt=bf.sel[p];
+    delete bf.data[key];delete bf.open[key];bfShift(p,n+1,cnt,-1);
+    for(let i=n;i<cnt;i++)bfRenum(p,i);
+    if(cnt<=1)delete bf.sel[p];else bf.sel[p]=cnt-1;
+    bfRenderDD();bfRenderBlocks();bfSave();
+  }
+
+  // ---- push created batches into the All Batches table ----
+  function ampm(t){const [h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';const h12=h%12||12;return h12+':'+String(m).padStart(2,'0')+' '+ap}
+  function addToBatches(list){
+    const fresh=[];
+    list.forEach(r=>{
+      if(BATCHDATA.some(b=>b.name===r.internal))return;
+      const start=new Date(r.cs),end=new Date(r.ce),now=new Date();
+      fresh.push({name:r.internal,label:r.name,prog:r.program,branch:r.branch,start,end,
+        time:`${ampm(r.st)} to ${ampm(r.et)}`,days:r.days,
+        adm:(r.ae&&new Date(r.ae)<now)?'Closed':'Ongoing',
+        status:start>now?'Upcoming':'Running',
+        cap:+r.cap||30,enr:0,teacher:r.teacher||'—',rev:0,dep:0,outAmt:0,depPct:0,out:0});
+    });
+    if(fresh.length){BATCHDATA.unshift(...fresh);fresh.forEach(d=>{if(!BATCHES.includes(d.name))BATCHES.unshift(d.name)})}
+  }
+
+  // ---- create ----
+  function bfRenderDone(){
+    $('bfDonePanel').hidden=!bf.done.length;
+    if(!bf.done.length)return;
+    $('bfDoneTitle').textContent=`Created batches (${bf.done.length})`;
+    $('bfDoneWrap').innerHTML=`<table class="utiltable"><thead><tr><th>Branch</th><th>Program</th><th>Batch name</th><th>Internal name</th><th>Class dates</th><th>Days</th><th>Time</th><th>Capacity</th><th>Teacher</th></tr></thead><tbody>${bf.done.map(r=>`<tr><td>${esc(r.branch)}</td><td>${esc(r.program)}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.internal)}</td><td>${esc(r.cs)} → ${esc(r.ce)}</td><td>${r.days.join(', ')}</td><td>${esc(r.st)}–${esc(r.et)}</td><td>${esc(r.cap)}</td><td>${esc(r.teacher||'—')}</td></tr>`).join('')}</tbody></table>`;
+  }
+  $('bfCreate').addEventListener('click',()=>{
+    const bl=blocks();
+    if(!bl.length){$('bfProgF').classList.add('err');return toast('Select at least one program')}
+    bf.showErr=true;
+    const bad=bl.filter(b=>missing(b.key).length);
+    if(bad.length){
+      bad.forEach(b=>{bf.open[b.key]=true;bf.gclosed[b.p]=false});bfRenderBlocks();
+      const el=document.querySelector('#bfmain .bf-f.err');if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'});
+      return toast(`${bad.length} batch${bad.length>1?'es':''} still need required fields`);
+    }
+    const made=[];
+    bl.forEach(b=>{const rec=Object.assign({branch:bf.branch,program:b.p},JSON.parse(JSON.stringify(bf.data[b.key])));bf.done.push(rec);made.push(rec)});
+    addToBatches(made);
+    bf.sel={};bf.data={};bf.open={};bf.showErr=false;
+    bfRenderDD();bfRenderBlocks();bfRenderDone();bfSave();
+    if($('batchmain').style.display!=='none')renderBatches();
+    toast(`${bl.length} batch${bl.length>1?'es':''} created — now in the All Batches table`);
+  });
+  $('bfCsv').addEventListener('click',()=>{
+    const head=["Branch","Program","Batch name","Internal name","Admission start","Admission end","Class start","Class end","Program outline","Preferred teacher","Class day","Start time","End time","Capacity","Status","Color code","WhatsApp join URL"];
+    const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+    const lines=[head.map(q).join(',')].concat(bf.done.map(r=>[r.branch,r.program,r.name,r.internal,r.as,r.ae,r.cs,r.ce,r.outline,r.teacher,r.days.join(' '),r.st,r.et,r.cap,r.status,r.color,r.wa].map(q).join(',')));
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='batches.csv';a.click();
+  });
+  $('bfDoneClear').addEventListener('click',()=>{bf.done=[];bfRenderDone();bfSave()});
+
+  // ---- view switching ----
+  function showBatchForm(){
+    detailBatch=null;SEL.clear();hidePages();
+    $('ordmain').style.display='none';$('batchmain').style.display='none';
+    $('bfmain').style.display='';setNav('Batches');
+  }
+  $('newbatch').onclick=e=>{e.preventDefault();showBatchForm()};
+  $('bfback').onclick=showBatches;
+  $('bfcrumb').onclick=showBatches;
+
+  bfLoad();$('bfBranch').value=bf.branch;bfRenderDD();bfRenderBlocks();bfRenderDone();
+  addToBatches(bf.done);   // restore previously created batches into the table after a refresh
+})();
 update();
 </script>
 </body>
