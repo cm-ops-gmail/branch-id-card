@@ -635,7 +635,8 @@ const ICON='<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx
 // ---------- columns ----------
 function avatar(uid){const h=(uid*47)%360;const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'><rect width='300' height='300' fill='hsl(${h} 25% 82%)'/><circle cx='150' cy='115' r='55' fill='hsl(${h} 30% 38%)'/><ellipse cx='150' cy='285' rx='105' ry='88' fill='hsl(${(h+40)%360} 45% 45%)'/></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
 const photoSrc=r=>PHOTOS[r.uid]||(r.noPhoto?null:avatar(r.uid));
-const empLabel=r=>r.prog==='Kids English Programme'?'Parent’s Mobile':'Emergency Contact';
+const isParent=p=>p==='Kids English Programme'||p==='Spoken English Junior Programme';
+const empLabel=r=>isParent(r.prog)?'Parent’s Mobile':'Emergency Contact';
 function missingOf(r){const m=[],c=(l,v)=>{if(!String(v==null?'':v).trim()||v==='—')m.push(l)};
   c('Name',r.name);c('Programme',r.prog);c('Batch',r.batch);c('ID No',r.sid);c('Validity',r.vcustom===''?'':'ok');c('Branch',r.branch);c('Blood Group',r.bg);c(empLabel(r),r.emg);
   if(!photoSrc(r))m.push('Photo');return m}
@@ -831,31 +832,34 @@ let ART=null;
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
 function mkCanvas(){const c=document.createElement('canvas');c.width=CW;c.height=CH;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,CW,CH);return [c,x]}
 function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
-function drawLogo(x,cx,cy,k){ // approximation of the 10 Minute School | English Centre lockup
+function drawLogo(x,cx,cy,k,short){ // approximation of the 10 Minute School | English Centre lockup
   x.save();x.translate(cx,cy);x.scale(k,k);x.fillStyle='#111';x.textBaseline='middle';x.textAlign='left';
   x.font='800 62px Inter, sans-serif';x.fillText('10',-150,2);
   x.fillStyle=RED;rr(x,-82,-30,13,13,3);x.fill();
   x.fillStyle='#111';x.font='400 26px Inter, sans-serif';x.fillText('MINUTE',-62,-14);x.fillText('SCHOOL',-62,12);
-  x.fillRect(58,-24,2.5,48);
-  x.font='800 27px Inter, sans-serif';x.fillText('ENGLISH',70,-12);x.fillText('CENTRE',70,13);
+  if(!short){x.fillRect(58,-24,2.5,48);
+  x.font='800 27px Inter, sans-serif';x.fillText('ENGLISH',70,-12);x.fillText('CENTRE',70,13)}
   x.restore();
 }
 function valText(r){const d=vdate(r);return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear()}
 function cardData(r){return [r.name,r.prog,r.batch,r.sid,valText(r),r.branch]}
 const PIMG={};
 async function photoOf(r){const p=photoSrc(r);if(!p)return null;if(!PIMG[p])PIMG[p]=await loadImg(p);return PIMG[p]}
+// Front templates: Spoken English Junior → 'jr' (red + cloud photo), Kids English → 'kids' (yellow + cloud photo), everything else → 'sr' (red, large photo)
+const tplOf=r=>r.prog==='Spoken English Junior Programme'?'jr':r.prog==='Kids English Programme'?'kids':'sr';
 async function drawFront(r){
-  const [c,x]=mkCanvas(),k=CW/962;x.scale(k,k);
-  x.fillStyle=RED;x.beginPath();x.moveTo(428,606);x.lineTo(780,150);x.bezierCurveTo(745,62,655,6,560,0);x.lineTo(962,0);x.lineTo(962,606);x.closePath();x.fill();
-  drawLogo(x,176,82,.73);
+  const [c,x]=mkCanvas(),k=CW/962,tpl=tplOf(r);x.scale(k,k);
+  x.fillStyle=tpl==='kids'?'#ffbb01':'#e92428';
+  x.beginPath();x.moveTo(428,606);x.lineTo(780,150);x.bezierCurveTo(745,62,655,6,560,0);x.lineTo(962,0);x.lineTo(962,606);x.closePath();x.fill();
+  drawLogo(x,176,82,.73,true);
   const v=cardData(r);x.textBaseline='middle';x.textAlign='left';x.fillStyle='#111';
   let fs=40;x.font=`800 ${fs}px Inter, sans-serif`;const nm=String(v[0]).toUpperCase();
   while(x.measureText(nm).width>560&&fs>20){fs-=1;x.font=`800 ${fs}px Inter, sans-serif`}
   x.fillText(nm,52,179);
   x.font='400 21px Inter, sans-serif';x.fillText('Student ID:',52,223);
   const idx=52+x.measureText('Student ID: ').width+4;x.font='700 21px Inter, sans-serif';x.fillText(String(v[3]),idx,223);
-  const kids=r.prog==='Kids English Programme';
-  const rowsF=[['Programme:',kids?"Kids' English":v[1]],['Batch:',v[2]],['Validity:',v[4]],['Branch:',v[5]],['Blood Group:',r.bg],[kids?'Parent’s Mobile:':'Emergency Contact:',r.emg]];
+  const parent=isParent(r.prog);
+  const rowsF=[['Programme:',tpl==='kids'?"Kids' English":v[1]],['Batch:',v[2]],['Validity:',v[4]],['Branch:',v[5]],['Blood Group:',r.bg],[parent?'Parent’s Mobile:':'Emergency Contact:',r.emg]];
   rowsF.forEach((f,i)=>{
     const y=305+i*40.4, maxW=(780-.772*(y-150))-30-272;let s2=21;
     x.font='400 21px Inter, sans-serif';x.fillStyle='#111';x.fillText(f[0],52,y);
@@ -863,23 +867,16 @@ async function drawFront(r){
     x.fillText(String(f[1]||''),272,y);
   });
   const img=await photoOf(r);
-  const drawPhoto=(bx,by,bw,bh)=>{
-    if(img){const sc=Math.max(bw/img.width,bh/img.height),w=img.width*sc,h=img.height*sc;x.drawImage(img,bx+(bw-w)/2,by+(bh-h)*.3,w,h)}
-    else{x.fillStyle='#d6d6d6';x.fillRect(bx,by,bw,bh);x.fillStyle='#aaa';x.beginPath();x.arc(bx+bw/2,by+bh*.37,bw*.18,0,7);x.fill();x.beginPath();x.ellipse(bx+bw/2,by+bh*.95,bw*.35,bh*.3,0,0,7);x.fill()}
-  };
-  if(!kids){if(img){x.save();rr(x,632,150,273,284,38);x.clip();drawPhoto(632,150,273,284);x.restore()}}
-  else{
+  if(!img)return c;                       // no photo → no photo area at all
+  const cover=(bx,by,bw,bh,ay)=>{const sc=Math.max(bw/img.width,bh/img.height),w=img.width*sc,h=img.height*sc;x.drawImage(img,bx+(bw-w)/2,by+(bh-h)*ay,w,h)};
+  if(tpl==='sr'){                         // large photo bleeding off the right and bottom edges
+    x.save();x.beginPath();x.moveTo(640+70,96);x.lineTo(962,96);x.lineTo(962,606);x.lineTo(640,606);x.lineTo(640,96+70);x.arcTo(640,96,640+70,96,70);x.closePath();x.clip();
+    cover(640,96,322,510,.12);x.restore();
+  }else{                                  // scalloped cloud frame
     const cx=755,cy=232,N=12;
     const cloud=(R,rb)=>{x.beginPath();x.arc(cx,cy,R,0,7);for(let i=0;i<N;i++){const a=i*2*Math.PI/N;x.moveTo(cx+R*Math.cos(a)+rb,cy+R*Math.sin(a));x.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),rb,0,7)}};
-    if(img){x.fillStyle='#fff';cloud(88,44);x.fill();
-    x.save();cloud(88,40);x.clip();x.fillStyle='#e3e3e3';x.fillRect(cx-150,cy-150,300,300);drawPhoto(cx-132,cy-132,264,264);x.restore()}
-    // KIDS ENGLISH badge
-    x.save();x.translate(758,455);x.rotate(-.07);x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';
-    const L=[['K','#7ac143',-62],['I','#ffc20e',-22],['D','#f7941d',20],['S','#1c9ad6',62]];
-    x.font='900 64px Poppins, Inter, sans-serif';
-    L.forEach(([ch,col,dx])=>{x.lineWidth=12;x.strokeStyle='#1a2a5e';x.strokeText(ch,dx,-8);x.fillStyle=col;x.fillText(ch,dx,-8)});
-    x.font='900 31px Poppins, Inter, sans-serif';x.lineWidth=9;x.strokeStyle='#1a2a5e';x.strokeText('ENGLISH',0,36);x.fillStyle='#fff';x.fillText('ENGLISH',0,36);
-    x.restore();
+    x.fillStyle='#fff';cloud(88,44);x.fill();
+    x.save();cloud(88,40);x.clip();x.fillStyle='#d9deea';x.fillRect(cx-150,cy-150,300,300);cover(cx-132,cy-132,264,264,.3);x.restore();
   }
   return c;
 }
@@ -984,7 +981,7 @@ const fin=document.createElement('input');fin.type='file';fin.accept='image/*';l
 fin.onchange=async e=>{const f=e.target.files[0];if(!f||upUid==null)return;
   const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
   cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-  PHOTOS[upUid]=cv.toDataURL('image/jpeg',.88);try{localStorage.setItem('idphotos',JSON.stringify(PHOTOS))}catch(_){}
+  PHOTOS[upUid]=cv.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.88);try{localStorage.setItem('idphotos',JSON.stringify(PHOTOS))}catch(_){}
   fin.value='';update();if($('idov').style.display==='flex')openGen()};
 document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');const tip=$('tip');
   if(!t){tip.style.display='none';return}
@@ -1121,11 +1118,11 @@ function openEdit(uid){
    <div><label id="f_emglab">${empLabel(r)}</label><input type="text" id="f_emg" value="${r.emg||''}"></div>`;
   const mark=()=>['f_name','f_sid','f_prog','f_batch','f_val','f_branch','f_bg','f_emg'].forEach(id=>$(id).classList.toggle('empty',!$(id).value.trim()));
   mark();$('edbody').querySelectorAll('input,select').forEach(x=>{x.oninput=mark;x.onchange=mark});
-  $('f_prog').onchange=()=>{$('f_emglab').textContent=$('f_prog').value==='Kids English Programme'?'Parent’s Mobile':'Emergency Contact'};
-  $('f_emglab').textContent=$('f_prog').value==='Kids English Programme'?'Parent’s Mobile':'Emergency Contact';
+  $('f_prog').onchange=()=>{$('f_emglab').textContent=isParent($('f_prog').value)?'Parent’s Mobile':'Emergency Contact'};
+  $('f_emglab').textContent=isParent($('f_prog').value)?'Parent’s Mobile':'Emergency Contact';
   const pin=document.createElement('input');pin.type='file';pin.accept='image/*';
   pin.onchange=async e=>{const f=e.target.files[0];if(!f)return;const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
-    cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);edPhoto=cv.toDataURL('image/jpeg',.88);$('edph').innerHTML=`<img src="${edPhoto}">`};
+    cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);edPhoto=cv.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.88);$('edph').innerHTML=`<img src="${edPhoto}">`};
   $('edup').onclick=()=>pin.click();
   $('edrm').onclick=()=>{edPhoto=null;$('edph').innerHTML='<div class="nop">!</div>'};
   $('edov').style.display='flex';
@@ -1336,7 +1333,7 @@ function renderProfile(){
   document.querySelectorAll('.dobw input').forEach(i=>i.onclick=()=>{try{i.showPicker()}catch(_){}});
   const ap=$('addpref');if(ap)ap.onclick=()=>{readForm(P);P.showPref=true;renderProfile()};
   const pf=$('f_photo');if(pf)pf.onchange=async e=>{const f=e.target.files[0];if(!f)return;const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
-    cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);profPhoto=cv.toDataURL('image/jpeg',.88);
+    cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);profPhoto=cv.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.88);
     pf.parentElement.querySelector('img,.nop2').outerHTML=`<img src="${profPhoto}">`};
   const sv=$('profsave');if(sv)sv.onclick=()=>{
     readForm(P);
