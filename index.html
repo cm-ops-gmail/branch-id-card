@@ -562,7 +562,8 @@
     <label class="b pri" id="caplab">📷 Take photo<input type="file" id="capfile" accept="image/*" capture="environment" hidden></label>
     <button id="caprl" style="display:none">⟲</button><button id="caprr" style="display:none">⟳</button>
   </div>
-  <div class="muted" id="capnote" style="font-size:12.5px;display:none;text-align:center;max-width:320px">The computer removes the background and crops the photo for the card automatically.</div>
+  <div class="row seg" id="capmode" style="display:none"><button id="capauto" class="on">✨ Background removed</button><button id="caporig">Original</button></div>
+  <div class="muted" id="capnote" style="font-size:12px;text-align:center;max-width:320px"></div>
   <button class="pri" id="capsend" style="display:none">Send &amp; next</button>
   <div id="capmsg" style="min-height:22px"></div>
 </div>
@@ -662,7 +663,7 @@ const COLS={
  nextDue:{l:'Next Due Date',w:143,r:r=>r.nextDue},
  bg:{l:'Blood Group',w:100,r:r=>r.bg?`<span class="pill">${r.bg}</span>`:'<span class="miss">Missing</span>'},
  emg:{l:'Emergency Contact',w:143,r:r=>r.emg||'<span class="miss">Missing</span>'},
- photo:{l:'Photo',w:136,r:r=>{const p=photoSrc(r);return `<div class="ph" data-up="${r.uid}">${p?`<img src="${p}">`:`<i style="background:#fde8e8;color:#c62828">!</i>`}<span>${p?'Change':'Upload'}</span>${p?'':'<span class="miss" style="text-decoration:none">Missing</span>'}</div>`}},
+ photo:{l:'Photo',w:136,r:r=>{const p=thumbSrc(r);return `<div class="ph" data-up="${r.uid}">${p?`<img src="${p}">`:`<i style="background:#fde8e8;color:#c62828">!</i>`}<span>${p?'Change':'Upload'}</span>${p?'':'<span class="miss" style="text-decoration:none">Missing</span>'}</div>`}},
  idst:{l:'ID Card Status',w:200,r:r=>{const m=missingOf(r);return m.length?`<span class="pill p-amber" title="${m.join(', ')}">⚠ Missing: ${m.join(', ')}</span>`:'<span class="pill p-green">✓ Ready</span>'}}
 };
 const DEF_ORDER=Object.keys(COLS), DEF_PIN=['id','student','product'];
@@ -873,10 +874,7 @@ async function drawFront(r){
   // With head metrics: crop like the templates — cloud = head + upper chest (square), senior = head to waist (tall)
   const place=(bx,by,bw,bh,ay,kind)=>{
     if(!meta)return cover(bx,by,bw,bh,ay);
-    const W=img.width,H=img.height,hh=Math.max(.05,(meta.s-meta.t))*H;let ch=hh*(kind==='cloud'?2.5:3.3);
-    if(kind!=='cloud')ch=Math.min(ch,(H-meta.t*H)/.94);              // senior: person always reaches the card's bottom edge
-    const cw=ch*bw/bh;
-    const sy=meta.t*H-ch*(kind==='cloud'?.12:.06),sx=meta.x*W-cw/2,k=bw/cw;
+    const W=img.width,H=img.height,{sx,sy,cw}=headCrop(W,H,meta,bw/bh,kind),k=bw/cw;
     x.drawImage(img,bx-sx*k,by-sy*k,W*k,H*k);                       // whole cut-out, positioned; the frame's clip does the cropping
   };
   const cover=(bx,by,bw,bh,ay)=>{const sc=Math.max(bw/img.width,bh/img.height),w=img.width*sc,h=img.height*sc;x.drawImage(img,bx+(bw-w)/2,by+(bh-h)*ay,w,h)};
@@ -887,7 +885,7 @@ async function drawFront(r){
     const cx=755,cy=232,N=12;
     const cloud=(R,rb)=>{x.beginPath();x.arc(cx,cy,R,0,7);for(let i=0;i<N;i++){const a=i*2*Math.PI/N;x.moveTo(cx+R*Math.cos(a)+rb,cy+R*Math.sin(a));x.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),rb,0,7)}};
     x.fillStyle='#fff';cloud(88,44);x.fill();
-    x.save();cloud(88,40);x.clip();x.fillStyle='#fff';x.fillRect(cx-150,cy-150,300,300);place(cx-132,cy-132,264,264,.3,'cloud');x.restore();
+    x.save();cloud(88,40);x.clip();x.fillStyle=CLOUD_BG;x.fillRect(cx-150,cy-150,300,300);place(cx-132,cy-132,264,264,.3,'cloud');x.restore();
   }
   return c;
 }
@@ -992,7 +990,7 @@ const fin=document.createElement('input');fin.type='file';fin.accept='image/*';l
 fin.onchange=async e=>{const f=e.target.files[0];if(!f||upUid==null)return;
   const im=await loadImg(URL.createObjectURL(f)),m=Math.min(1,700/Math.max(im.width,im.height)),cv=document.createElement('canvas');
   cv.width=im.width*m;cv.height=im.height*m;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-  delete PHMETA[upUid];saveMeta();PHOTOS[upUid]=cv.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.88);try{localStorage.setItem('idphotos',JSON.stringify(PHOTOS))}catch(_){}
+  delete PHMETA[upUid];delete PHTHUMB[upUid];saveMeta();PHOTOS[upUid]=cv.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.88);try{localStorage.setItem('idphotos',JSON.stringify(PHOTOS))}catch(_){}
   fin.value='';update();if($('idov').style.display==='flex')openGen()};
 document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');const tip=$('tip');
   if(!t){tip.style.display='none';return}
@@ -1115,7 +1113,7 @@ function opts(list,cur,blank){return (blank?'<option value=""></option>':'')+lis
 function openEdit(uid){
   const r=rows.find(x=>x.uid===uid);if(!r)return;edUid=uid;edPhoto=undefined;
   $('edsub').textContent=`${r.name} · ${r.sid}`;$('ederr').textContent='';
-  const ph=photoSrc(r);
+  const ph=thumbSrc(r);
   $('edbody').innerHTML=`
    <div class="full"><label>Photo</label><div class="phrow"><span id="edph">${ph?`<img src="${ph}">`:'<div class="nop">!</div>'}</span>
      <button class="mbtn" id="edup" type="button">Upload photo</button><button class="mbtn" id="edrm" type="button">Remove</button></div></div>
@@ -1146,7 +1144,7 @@ $('edsave').onclick=()=>{
   const ch={name:$('f_name').value.trim(),sid:$('f_sid').value.trim(),prog:$('f_prog').value,batch:$('f_batch').value,branch:$('f_branch').value,bg:$('f_bg').value,emg:$('f_emg').value.trim(),vcustom:$('f_val').value};
   Object.assign(r,ch);
   const e=Object.assign({},EDITS[r.uid]||{},ch);
-  if(edPhoto!==undefined){delete PHMETA[r.uid];saveMeta()}
+  if(edPhoto!==undefined){delete PHMETA[r.uid];delete PHTHUMB[r.uid];saveMeta()}
   if(edPhoto===null){delete PHOTOS[r.uid];r.noPhoto=true;e.noPhoto=true}
   else if(typeof edPhoto==='string'){PHOTOS[r.uid]=edPhoto;r.noPhoto=false;e.noPhoto=false}
   EDITS[r.uid]=e;
@@ -1200,7 +1198,7 @@ function notesHTML(sid){
 }
 function headerHTML(r,tabs){
   const rs=stuRows(r.sid),ltv=rs.reduce((s,x)=>s+x.payable,0),reg=new Date(2024,r.uid%12,(r.uid%27)+1),days=Math.floor((TODAY-reg)/864e5);
-  const p=photoSrc(r);
+  const p=thumbSrc(r);
   return `<div class="card stu"><div class="sr">
     <div class="av2">${p?`<img src="${p}">`:`<span>${r.name.trim()[0]}</span>`}<em>Enrolled</em></div>
     <div class="si"><div class="sn">${r.name} <span class="self">Self</span></div>
@@ -1309,7 +1307,7 @@ function renderProfile(){
   const tabs=[['profile','Profile Information'],['orders','Order History'],['perf','Performance'],['free','Free Class'],['ref','Referral']];
   let body='';
   if(ptab==='profile'){
-    const p2=profPhoto!==undefined?profPhoto:photoSrc(r);
+    const p2=profPhoto!==undefined?profPhoto:thumbSrc(r);
     body=`<div class="card pad"><div class="sect">Preferred Program</div>
       ${(P.showPref||P.prefProg||P.exam||P.country||P.score)?`<div class="g4">${fld('p_prog','',P.prefProg,{sel:Object.keys(PROGRAMS),ph:'Select program'}).replace('<label> </label>','')}${fld('p_exam','',P.exam,{type:'date',ph:'Intended exam date'})}${fld('p_country','',P.country,{sel:['UK','USA','Canada','Australia','Germany'],ph:'Desired country'})}${fld('p_score','',P.score,{sel:['5.5','6.0','6.5','7.0','7.5','8.0'],ph:'Desired score'})}</div>`:''}
       <button class="mbtn" style="margin-top:8px" id="addpref">Add +</button><hr class="hr">
@@ -1352,7 +1350,7 @@ function renderProfile(){
     save('idprof',PROF);
     rs.forEach(x=>{x.name=P.name;x.phone=P.phone;x.emg=P.emg;x.bg=P.bg;
       const e=Object.assign({},EDITS[x.uid]||{},{name:x.name,phone:x.phone,emg:x.emg,bg:x.bg});
-      if(typeof profPhoto==='string'){delete PHMETA[x.uid];PHOTOS[x.uid]=profPhoto;x.noPhoto=false;e.noPhoto=false}
+      if(typeof profPhoto==='string'){delete PHMETA[x.uid];delete PHTHUMB[x.uid];PHOTOS[x.uid]=profPhoto;x.noPhoto=false;e.noPhoto=false}
       EDITS[x.uid]=e});
     save('idedits',EDITS);save('idphotos',PHOTOS);saveMeta();profPhoto=undefined;
     toast('Profile updated');update();renderProfile();
@@ -1371,10 +1369,13 @@ const RELAY='https://ntfy.sh/';
 // Background removal (IMG.LY, ISNet model, runs in this browser) + head/shoulder metrics used to crop each card template.
 const BGR='https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',BG_OPTS={model:'isnet_fp16',output:{format:'image/png'}};
 let bgMod=null;const bgLoad=()=>bgMod||(bgMod=import(BGR));
-async function makePortrait(blob){
-  const m=await bgLoad(),out=await m.removeBackground(blob,BG_OPTS),im=await loadImg(URL.createObjectURL(out));
+const CLOUD_BG='#d8dcea';                                           // cloud frame colour of the Junior / Kids templates
+async function removeBg(blob){const m=await bgLoad();return m.removeBackground(blob,BG_OPTS)}   // → transparent PNG blob
+// Cut-out → trimmed WebP + head/shoulder metrics (+ a face thumbnail). Returns null for photos without transparency.
+function analyzeCutout(im){
   const W=im.width,H=im.height,sw=Math.min(240,W),sh=Math.round(H*sw/W),c=document.createElement('canvas');c.width=sw;c.height=sh;
   const cx=c.getContext('2d');cx.drawImage(im,0,0,sw,sh);const d=cx.getImageData(0,0,sw,sh).data;
+  let op=0;for(let i=3;i<d.length;i+=4)if(d[i]>250)op++;if(op>sw*sh*.97)return null;   // opaque photo, not a cut-out
   const rows=[];let x0=sw,x1=-1,y0=-1,y1=-1;
   for(let y=0;y<sh;y++){let a=-1,b=-1,n=0;for(let x=0;x<sw;x++)if(d[(y*sw+x)*4+3]>128){n++;if(a<0)a=x;b=x}
     rows.push({n,a,b});if(n>sw*.02){if(y0<0)y0=y;y1=y;x0=Math.min(x0,a);x1=Math.max(x1,b)}}
@@ -1383,14 +1384,25 @@ async function makePortrait(blob){
   for(let y=y0;y<=y1;y++){const w=rows[y].n;if(y-y0>3&&hw&&w>hw*1.55){ys=y;break}hw=Math.max(hw,w)}
   if(ys<0)ys=Math.round(y0+(y1-y0)*.35);
   let sx=0,k=0;for(let y=y0;y<ys;y++)if(rows[y].n){sx+=(rows[y].a+rows[y].b)/2;k++}
-  // trim to the person and keep at most 1000 px tall (WebP keeps transparency and stays small)
   const f=W/sw,tx=Math.max(0,x0*f-4),ty=Math.max(0,y0*f-4),tw=Math.min(W,(x1+1)*f+4)-tx,th=Math.min(H,(y1+1)*f+4)-ty,sc=Math.min(1,1000/th);
   const o=document.createElement('canvas');o.width=Math.round(tw*sc);o.height=Math.round(th*sc);o.getContext('2d').drawImage(im,tx,ty,tw,th,0,0,o.width,o.height);
   const meta={x:((k?sx/k:(x0+x1)/2)*f-tx)/tw,t:(y0*f-ty)/th,s:(ys*f-ty)/th};
-  return {data:o.toDataURL('image/webp',.92),meta};
+  return {data:o.toDataURL('image/webp',.92),meta,thumb:headThumb(o,meta)};
 }
+function headCrop(W,H,meta,aspect,kind){                            // source rect around the head for a frame of the given aspect
+  const hh=Math.max(.05,meta.s-meta.t)*H;let ch=hh*(kind==='cloud'?2.5:3.3);
+  if(kind!=='cloud')ch=Math.min(ch,(H-meta.t*H)/.94);
+  const cw=ch*aspect;return {sx:meta.x*W-cw/2,sy:meta.t*H-ch*(kind==='cloud'?.12:.06),cw,ch};
+}
+function headThumb(img,meta){                                       // small square face thumbnail for avatars & lists
+  const c=document.createElement('canvas');c.width=c.height=160;const x=c.getContext('2d');x.fillStyle=CLOUD_BG;x.fillRect(0,0,160,160);
+  const r=headCrop(img.width,img.height,Object.assign({},meta,{s:meta.t+(meta.s-meta.t)*.8}),1,'cloud'),k=160/r.cw;
+  x.drawImage(img,-r.sx*k,-r.sy*k,img.width*k,img.height*k);return c.toDataURL('image/webp',.9);
+}
+let PHTHUMB={};try{PHTHUMB=JSON.parse(localStorage.getItem('idphthumb')||'{}')}catch(_){}
+const thumbSrc=r=>PHTHUMB[r.uid]||photoSrc(r);
 let PHMETA={};try{PHMETA=JSON.parse(localStorage.getItem('idphmeta')||'{}')}catch(_){}
-const saveMeta=()=>{try{localStorage.setItem('idphmeta',JSON.stringify(PHMETA))}catch(_){}};
+const saveMeta=()=>{try{localStorage.setItem('idphmeta',JSON.stringify(PHMETA));localStorage.setItem('idphthumb',JSON.stringify(PHTHUMB))}catch(_){}};
 const PH={open:false,sid:null,es:null,topic:'',url:'',count:0,phone:false,err:''};
 const rid=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
 function basePath(){return location.protocol==='file:'?location.href.split('?')[0].split('#')[0]:location.origin+location.pathname}
@@ -1398,7 +1410,6 @@ const blobToData=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()
 function startPhone(sid){
   closePhone(true);Object.assign(PH,{sid,open:true,count:0,phone:false,err:'',topic:'idc-'+rid()});
   PH.url=basePath()+'?cap='+PH.topic+'&n='+encodeURIComponent((stuRows(sid)[0]||{}).name||'');
-  bgLoad().then(m=>m.preload&&m.preload(BG_OPTS)).catch(()=>{});      // warm up the model while the phone takes the photo
   const es=new EventSource(RELAY+PH.topic+'/sse');PH.es=es;
   es.onopen=()=>{if(PH.err){PH.err='';drawPhonePanel()}};
   es.onerror=()=>{if(PH.es===es&&es.readyState!==1){PH.err='Reconnecting to the photo relay…';drawPhonePanel()}};
@@ -1408,11 +1419,8 @@ function startPhone(sid){
     const at=m.attachment;if(!at||!/^image\//.test(at.type||''))return;
     const sidNow=PH.sid;
     try{const r=await fetch(at.url);if(!r.ok)throw new Error(r.status);const blob=await r.blob();
-      PH.busy=true;PH.err='';drawPhonePanel();
-      let res=null;try{res=await makePortrait(blob)}catch(e){console.warn('background removal failed',e)}
-      PH.busy=false;
-      if(res)savePhonePhoto(sidNow,res.data,res.meta);
-      else{savePhonePhoto(sidNow,await blobToData(blob),null);PH.err='Couldn’t remove the background on this photo — the original was saved.'}
+      let res=null;try{res=analyzeCutout(await loadImg(URL.createObjectURL(blob)))}catch(e){console.warn(e)}
+      if(res)savePhonePhoto(sidNow,res.data,res.meta,res.thumb);else savePhonePhoto(sidNow,await blobToData(blob),null);
       PH.count++;drawPhonePanel();
       fetch(RELAY+PH.topic,{method:'POST',body:'saved'}).catch(()=>{});
     }catch(e){PH.err='A photo arrived but could not be downloaded ('+(e.message||e)+'). Send it again.';drawPhonePanel()}
@@ -1420,8 +1428,8 @@ function startPhone(sid){
   drawPhonePanel();
 }
 function closePhone(silent){if(PH.es){try{PH.es.close()}catch(_){}}PH.es=null;PH.open=false;PH.url='';if(!silent)drawPhonePanel()}
-function savePhonePhoto(sid,data,meta){
-  const rs=stuRows(sid);rs.forEach(x=>{PHOTOS[x.uid]=data;if(meta)PHMETA[x.uid]=meta;else delete PHMETA[x.uid];x.noPhoto=false;EDITS[x.uid]=Object.assign({},EDITS[x.uid]||{},{noPhoto:false})});
+function savePhonePhoto(sid,data,meta,thumb){
+  const rs=stuRows(sid);rs.forEach(x=>{PHOTOS[x.uid]=data;if(meta){PHMETA[x.uid]=meta;PHTHUMB[x.uid]=thumb}else{delete PHMETA[x.uid];delete PHTHUMB[x.uid]}x.noPhoto=false;EDITS[x.uid]=Object.assign({},EDITS[x.uid]||{},{noPhoto:false})});
   saveMeta();try{localStorage.setItem('idedits',JSON.stringify(EDITS));localStorage.setItem('idphotos',JSON.stringify(PHOTOS))}catch(_){}
   toast('📷 Photo received from phone and saved');update();
   if($('profpage').style.display!=='none'&&curStu===sid){const r=rs[0];if(r)readForm(profOf(r));profPhoto=undefined;renderProfile()}
@@ -1432,7 +1440,7 @@ function drawPhonePanel(){
   box.innerHTML=`<div class="phbox"><div class="qr">${PH.url?'<canvas id="phqr" width="260" height="260"></canvas>':'<span class="muted" style="font-size:11px">Creating link…</span>'}</div>
    <div><h4>Snap a photo from your phone</h4>
    <ol><li>Scan the code with the phone camera.</li><li>Take the student’s photo, rotate if needed, tap “Send &amp; next”.</li><li>The photo is saved as this student’s photo straight away.</li></ol>
-   <div class="st">${PH.busy?'<span style="color:#1d4ed8">✨ Removing background…</span> · ':''}${PH.phone?'<span style="color:#15803d">● Phone connected</span> · ':'Waiting for the phone · '}${PH.count} received</div>
+   <div class="st">${PH.phone?'<span style="color:#15803d">● Phone connected</span> · ':'Waiting for the phone · '}${PH.count} received</div>
    <div class="links"><a id="phcopy">Copy link</a><a id="phclose">Close link</a></div>
    ${location.protocol==='file:'&&!PH.base?'<div class="phwarn">⚠ This page is opened from a file, so a phone can’t reach it. Open the app from its web address instead.</div>':''}
    ${PH.err?`<div class="phwarn">${PH.err}</div>`:''}</div></div>
@@ -1458,22 +1466,43 @@ function drawPhonePanel(){
     .catch(()=>st('<span class="bad">No internet connection — check the phone’s data or Wi-Fi and reload.</span>'));
   try{const es=new EventSource(RELAY+cap+'/sse');
     es.onmessage=ev=>{try{if(JSON.parse(ev.data).message==='saved'){msg('✓ Saved on the computer. Take another photo if you want to replace it.','ok')}}catch(_){}}}catch(_){}
-  // Phone only rotates and sends a full-quality photo; background removal + crop run on the computer (better model, no quality loss).
-  let rot=0,src=null;
-  function draw(){if(!src)return;const m=Math.min(1,1600/Math.max(src.width,src.height)),w=src.width*m,h=src.height*m,sw=rot%2?h:w,sh=rot%2?w:h;
-    cv.width=sw;cv.height=sh;ctx.save();ctx.translate(sw/2,sh/2);ctx.rotate(rot*Math.PI/2);ctx.drawImage(src,-w/2,-h/2,w,h);ctx.restore();cv.style.display='block';
-    ['caprl','caprr','capsend'].forEach(id=>$(id).style.display='inline-flex');$('capnote').style.display='block';msg('')}
-  window.__capUse=i=>{src=i;rot=0;draw();return Promise.resolve()};   // used by tests
+  // Background removal runs here on the phone (IMG.LY ISNet) so the result can be checked before sending.
+  const note=t=>$('capnote').textContent=t;
+  note('Preparing background removal…');
+  bgLoad().then(m=>m.preload?m.preload(BG_OPTS):0).then(()=>note('Background removal ready.')).catch(()=>note('Background removal unavailable — the original photo will be sent.'));
+  let rot=0,src=null,work=document.createElement('canvas'),cut=null,mode='orig',job=0;
+  function show(){
+    const auto=mode==='auto'&&cut,b=auto?cut:work;cv.width=b.width;cv.height=b.height;
+    if(auto){ctx.fillStyle=CLOUD_BG;ctx.fillRect(0,0,cv.width,cv.height)}else ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.drawImage(b,0,0);cv.style.display='block';
+    $('capauto').classList.toggle('on',!!auto);$('caporig').classList.toggle('on',!auto);$('capauto').disabled=!cut;
+  }
+  async function draw(){if(!src)return;const m=Math.min(1,1600/Math.max(src.width,src.height)),w=src.width*m,h=src.height*m,sw=rot%2?h:w,sh=rot%2?w:h;
+    work.width=sw;work.height=sh;const wx=work.getContext('2d');wx.save();wx.translate(sw/2,sh/2);wx.rotate(rot*Math.PI/2);wx.drawImage(src,-w/2,-h/2,w,h);wx.restore();
+    ['caprl','caprr','capsend'].forEach(id=>$(id).style.display='inline-flex');$('capmode').style.display='flex';
+    cut=null;mode='orig';show();msg('');
+    const my=++job;$('capsend').disabled=true;note('✨ Removing background… (first photo can take a little longer)');
+    try{const blob=await new Promise(r=>work.toBlob(r,'image/jpeg',.95)),out=await removeBg(blob),im=await loadImg(URL.createObjectURL(out));
+      if(my!==job)return;
+      // trim to the person and keep it ≤1200 px tall so the upload stays small
+      const res=analyzeCutout(im);
+      if(res){cut=await loadImg(res.data);mode='auto';note('Check the photo, then tap Send.')}
+      else note('No person found — the original photo will be sent.');
+    }catch(e){if(my!==job)return;note('Couldn’t remove the background ('+(e.message||e)+') — the original photo will be sent.')}
+    $('capsend').disabled=false;show()}
+  window.__capUse=i=>{src=i;rot=0;return draw()};                   // used by tests
   $('capfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>{src=i;rot=0;draw()};i.src=URL.createObjectURL(f)};
   $('caprl').onclick=()=>{rot=(rot+3)%4;draw()};$('caprr').onclick=()=>{rot=(rot+1)%4;draw()};
+  $('capauto').onclick=()=>{if(cut){mode='auto';show()}};$('caporig').onclick=()=>{mode='orig';show()};
   $('capsend').onclick=()=>{
-    const btn=$('capsend');btn.disabled=true;btn.textContent='Sending…';msg('');
-    cv.toBlob(async b=>{
-      try{const r=await fetch(RELAY+cap,{method:'PUT',body:b,headers:{Filename:'photo.jpg'}});if(!r.ok)throw new Error('HTTP '+r.status);
-        msg('Sent — the computer is preparing the photo…')}
+    const auto=mode==='auto'&&cut,btn=$('capsend');btn.disabled=true;btn.textContent='Sending…';msg('');
+    let c2=work;if(auto){c2=document.createElement('canvas');c2.width=cut.width;c2.height=cut.height;c2.getContext('2d').drawImage(cut,0,0)}
+    c2.toBlob(async b=>{
+      try{const r=await fetch(RELAY+cap,{method:'PUT',body:b,headers:{Filename:auto?'photo.png':'photo.jpg'}});if(!r.ok)throw new Error('HTTP '+r.status);
+        msg('Sent — waiting for the computer to save it…')}
       catch(e){msg('Couldn’t send ('+(e.message||e)+'). Check the connection and try again.','bad')}
       btn.disabled=false;btn.textContent='Send & next';
-    },'image/jpeg',.92);
+    },auto?'image/png':'image/jpeg',.92);
   };
 })();
 
