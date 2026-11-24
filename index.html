@@ -1370,7 +1370,9 @@ const RELAY='https://ntfy.sh/';
 const BGR='https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',BG_OPTS={model:'isnet_fp16',output:{format:'image/png'}};
 let bgMod=null;const bgLoad=()=>bgMod||(bgMod=import(BGR));
 const CLOUD_BG='#d8dcea';                                           // cloud frame colour of the Junior / Kids templates
-async function removeBg(blob){const m=await bgLoad();return m.removeBackground(blob,BG_OPTS)}   // → transparent PNG blob
+// Phone uses the 44 MB quantised model (fp16 is ~88 MB and fails on mobile data); the computer uses the sharper fp16 one.
+const BG_PHONE={model:'isnet_quint8',output:{format:'image/png'}};
+async function removeBg(blob,opts){const m=await bgLoad();return m.removeBackground(blob,opts||BG_OPTS)}   // → transparent PNG blob
 // Cut-out → trimmed WebP + head/shoulder metrics (+ a face thumbnail). Returns null for photos without transparency.
 function analyzeCutout(im){
   const W=im.width,H=im.height,sw=Math.min(240,W),sh=Math.round(H*sw/W),c=document.createElement('canvas');c.width=sw;c.height=sh;
@@ -1420,6 +1422,11 @@ function startPhone(sid){
     const sidNow=PH.sid;
     try{const r=await fetch(at.url);if(!r.ok)throw new Error(r.status);const blob=await r.blob();
       let res=null;try{res=analyzeCutout(await loadImg(URL.createObjectURL(blob)))}catch(e){console.warn(e)}
+      if(!res){                                                     // phone sent the original (or couldn't remove it) → do it here
+        PH.busy=true;drawPhonePanel();
+        try{res=analyzeCutout(await loadImg(URL.createObjectURL(await removeBg(blob))))}catch(e){console.warn('background removal failed',e)}
+        PH.busy=false;
+      }
       if(res)savePhonePhoto(sidNow,res.data,res.meta,res.thumb);else savePhonePhoto(sidNow,await blobToData(blob),null);
       PH.count++;drawPhonePanel();
       fetch(RELAY+PH.topic,{method:'POST',body:'saved'}).catch(()=>{});
@@ -1440,7 +1447,7 @@ function drawPhonePanel(){
   box.innerHTML=`<div class="phbox"><div class="qr">${PH.url?'<canvas id="phqr" width="260" height="260"></canvas>':'<span class="muted" style="font-size:11px">Creating link…</span>'}</div>
    <div><h4>Snap a photo from your phone</h4>
    <ol><li>Scan the code with the phone camera.</li><li>Take the student’s photo, rotate if needed, tap “Send &amp; next”.</li><li>The photo is saved as this student’s photo straight away.</li></ol>
-   <div class="st">${PH.phone?'<span style="color:#15803d">● Phone connected</span> · ':'Waiting for the phone · '}${PH.count} received</div>
+   <div class="st">${PH.busy?'<span style="color:#1d4ed8">✨ Removing background…</span> · ':''}${PH.phone?'<span style="color:#15803d">● Phone connected</span> · ':'Waiting for the phone · '}${PH.count} received</div>
    <div class="links"><a id="phcopy">Copy link</a><a id="phclose">Close link</a></div>
    ${location.protocol==='file:'&&!PH.base?'<div class="phwarn">⚠ This page is opened from a file, so a phone can’t reach it. Open the app from its web address instead.</div>':''}
    ${PH.err?`<div class="phwarn">${PH.err}</div>`:''}</div></div>
@@ -1468,8 +1475,15 @@ function drawPhonePanel(){
     es.onmessage=ev=>{try{if(JSON.parse(ev.data).message==='saved'){msg('✓ Saved on the computer. Take another photo if you want to replace it.','ok')}}catch(_){}}}catch(_){}
   // Background removal runs here on the phone (IMG.LY ISNet) so the result can be checked before sending.
   const note=t=>$('capnote').textContent=t;
-  note('Preparing background removal…');
-  bgLoad().then(m=>m.preload?m.preload(BG_OPTS):0).then(()=>note('Background removal ready.')).catch(()=>note('Background removal unavailable — the original photo will be sent.'));
+  const prog={};let ready=false,busy=false;
+  const PO=Object.assign({},BG_PHONE,{progress:(key,cur,tot)=>{if(ready||!/^fetch/.test(key))return;prog[key]=[cur,tot];
+    let c=0,t=0;for(const k in prog){c+=prog[k][0];t+=prog[k][1]}if(t&&!busy)note('Downloading background removal… '+Math.round(c/t*100)+'% (one time only)')}});
+  async function prepare(n=0){
+    try{const m=await bgLoad();if(m.preload)await m.preload(PO);ready=true;if(!busy)note('Background removal ready.')}
+    catch(e){if(n<1){note('Download interrupted — retrying…');return prepare(n+1)}
+      note('Couldn’t download background removal on this connection — send the photo anyway, the computer will remove the background.')}
+  }
+  prepare();
   let rot=0,src=null,work=document.createElement('canvas'),cut=null,mode='orig',job=0;
   function show(){
     const auto=mode==='auto'&&cut,b=auto?cut:work;cv.width=b.width;cv.height=b.height;
@@ -1482,14 +1496,15 @@ function drawPhonePanel(){
     ['caprl','caprr','capsend'].forEach(id=>$(id).style.display='inline-flex');$('capmode').style.display='flex';
     cut=null;mode='orig';show();msg('');
     const my=++job;$('capsend').disabled=true;note('✨ Removing background… (first photo can take a little longer)');
-    try{const blob=await new Promise(r=>work.toBlob(r,'image/jpeg',.95)),out=await removeBg(blob),im=await loadImg(URL.createObjectURL(out));
+    busy=true;
+    try{const blob=await new Promise(r=>work.toBlob(r,'image/jpeg',.95)),out=await removeBg(blob,PO),im=await loadImg(URL.createObjectURL(out));
       if(my!==job)return;
       // trim to the person and keep it ≤1200 px tall so the upload stays small
       const res=analyzeCutout(im);
       if(res){cut=await loadImg(res.data);mode='auto';note('Check the photo, then tap Send.')}
       else note('No person found — the original photo will be sent.');
-    }catch(e){if(my!==job)return;note('Couldn’t remove the background ('+(e.message||e)+') — the original photo will be sent.')}
-    $('capsend').disabled=false;show()}
+    }catch(e){if(my!==job)return;console.warn(e);note('Couldn’t remove the background here — send it anyway, the computer will remove it.')}
+    busy=false;$('capsend').disabled=false;show()}
   window.__capUse=i=>{src=i;rot=0;return draw()};                   // used by tests
   $('capfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>{src=i;rot=0;draw()};i.src=URL.createObjectURL(f)};
   $('caprl').onclick=()=>{rot=(rot+3)%4;draw()};$('caprr').onclick=()=>{rot=(rot+1)%4;draw()};
