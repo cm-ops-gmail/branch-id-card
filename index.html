@@ -278,7 +278,7 @@
   #capui h2{font-size:18px}#capui .cv{max-width:100%;max-height:52vh;border-radius:12px;border:1px solid var(--border)}
   #capui button,#capui label.b{height:46px;border-radius:10px;border:1px solid var(--border);background:#fff;font:inherit;font-size:15px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
   #capui button.pri,#capui label.b.pri{background:#111;color:#fff;border-color:#111}#capui .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  #capui .ok{color:#15803d;font-weight:600}#capui .bad{color:#c62828}
+  #capui .ok{color:#15803d;font-weight:600}#capui .seg button{height:38px;font-size:13.5px}#capui .seg button.on{background:#eef2ff;border-color:#6366f1;color:#3730a3;font-weight:600}#capui .seg button:disabled{opacity:.45}#capui .bad{color:#c62828}
   a.sname{color:inherit;text-decoration:none;cursor:pointer}a.sname:hover{color:var(--blue);text-decoration:underline}
   .fi{height:32px;border-radius:8px;border-color:#e4e4e2;box-shadow:0 1px 2px rgba(0,0,0,.04)}
   select.fi{appearance:none;-webkit-appearance:none;padding-right:28px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center}
@@ -381,6 +381,7 @@
   #profpage .sect+.g3,#profpage .sect+.g4{margin-top:0}
   #profpage .card.pad>.sect:not(:first-child){margin-top:40px!important}
   .pcard .nophoto{background:#fff4d6;border:1px solid #f1d58a;color:#7a4a00;border-radius:7px;font-size:11px;padding:4px 8px;margin-bottom:8px}
+  .ph img,.av2 img,.edm .phrow img,.phrow2 img{background-color:#fff}
   #printarea{display:none}
   @media print{
     @page{size:85.6mm 54mm;margin:0}
@@ -562,6 +563,7 @@
     <label class="b pri" id="caplab">📷 Take photo<input type="file" id="capfile" accept="image/*" capture="environment" hidden></label>
     <button id="caprl" style="display:none">⟲</button><button id="caprr" style="display:none">⟳</button>
   </div>
+  <div class="row seg" id="capmode" style="display:none"><button id="capauto" class="on">✨ Auto · white background</button><button id="caporig">Original</button></div>
   <button class="pri" id="capsend" style="display:none">Send &amp; next</button>
   <div id="capmsg" style="min-height:22px"></div>
 </div>
@@ -876,7 +878,7 @@ async function drawFront(r){
     const cx=755,cy=232,N=12;
     const cloud=(R,rb)=>{x.beginPath();x.arc(cx,cy,R,0,7);for(let i=0;i<N;i++){const a=i*2*Math.PI/N;x.moveTo(cx+R*Math.cos(a)+rb,cy+R*Math.sin(a));x.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),rb,0,7)}};
     x.fillStyle='#fff';cloud(88,44);x.fill();
-    x.save();cloud(88,40);x.clip();x.fillStyle='#d9deea';x.fillRect(cx-150,cy-150,300,300);cover(cx-132,cy-132,264,264,.3);x.restore();
+    x.save();cloud(88,40);x.clip();x.fillStyle='#fff';x.fillRect(cx-150,cy-150,300,300);cover(cx-132,cy-132,264,264,.3);x.restore();
   }
   return c;
 }
@@ -1408,15 +1410,53 @@ function drawPhonePanel(){
     conn.on('data',m=>{if(m&&m.ok){msg('✓ Saved on the computer. Take another photo if you want to replace it.','ok');$('capsend').disabled=false;$('capsend').textContent='Send & next'}});
     setTimeout(()=>{if(!conn.open)$('capstat').innerHTML='<span class="bad">Can’t reach the computer — is the link still open?</span>'},9000)});
   p.on('error',e=>{$('capstat').innerHTML='<span class="bad">Connection error: '+(e.type||e.message)+'</span>'});
-  let rot=0,src=null;
-  function draw(){if(!src)return;const m=Math.min(1,900/Math.max(src.width,src.height)),w=src.width*m,h=src.height*m,sw=rot%2?h:w,sh=rot%2?w:h;
-    cv.width=sw;cv.height=sh;ctx.save();ctx.translate(sw/2,sh/2);ctx.rotate(rot*Math.PI/2);ctx.drawImage(src,-w/2,-h/2,w,h);ctx.restore();cv.style.display='block';
-    ['caprl','caprr','capsend'].forEach(id=>$(id).style.display='inline-flex')}
-  $('capfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>{src=i;rot=0;draw();msg('')};i.src=URL.createObjectURL(f)};
+  // ---- auto portrait: remove background (MediaPipe Selfie Segmentation, runs on the phone), crop head & shoulders 4:5 ----
+  const MP='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747/';
+  let seg=null,segP=null;
+  function loadSeg(){return segP||(segP=new Promise((res,rej)=>{const s=document.createElement('script');s.src=MP+'selfie_segmentation.js';s.crossOrigin='anonymous';
+    s.onload=()=>{try{seg=new SelfieSegmentation({locateFile:f=>MP+f});seg.setOptions({modelSelection:0});res()}catch(e){rej(e)}};s.onerror=()=>rej(new Error('Could not load the background-removal model'));document.head.append(s)}))}
+  async function maskOf(c){await loadSeg();return new Promise((res,rej)=>{seg.onResults(r=>res(r.segmentationMask));seg.send({image:c}).catch(rej)})}
+  async function autoPortrait(c){
+    const W=c.width,H=c.height,mask=await maskOf(c);
+    const cut=document.createElement('canvas');cut.width=W;cut.height=H;const k=cut.getContext('2d');
+    k.filter='blur(1.5px)';k.drawImage(mask,0,0,W,H);k.filter='none';k.globalCompositeOperation='source-in';k.drawImage(c,0,0);k.globalCompositeOperation='source-over';
+    // person bounding box from the alpha channel (sampled small)
+    const sw=Math.min(200,W),sh=Math.round(H*sw/W),sm=document.createElement('canvas');sm.width=sw;sm.height=sh;const sx=sm.getContext('2d');sx.drawImage(cut,0,0,sw,sh);
+    const d=sx.getImageData(0,0,sw,sh).data;let x0=sw,x1=-1,y0=sh,y1=-1,n=0;
+    for(let y=0;y<sh;y++)for(let x=0;x<sw;x++)if(d[(y*sw+x)*4+3]>140){n++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+    if(n<sw*sh*.02)return null;                                   // no person found
+    let hx=0,hn=0;const hy=y0+(y1-y0)*.22;                        // head centre = mean x of the top 22% of the person
+    for(let y=y0;y<=hy;y++)for(let x=0;x<sw;x++)if(d[(y*sw+x)*4+3]>140){hx+=x;hn++}
+    const f=W/sw,top=Math.max(0,(y0-(y1-y0)*.08)*f),cx=(hn?hx/hn:(x0+x1)/2)*f;
+    let ch=Math.min(H-top,(y1-y0)*f*1.1),cw=ch*.8;if(cw>W){cw=W;ch=cw/.8}
+    const left=Math.max(0,Math.min(W-cw,cx-cw/2));
+    const o=document.createElement('canvas');o.width=480;o.height=600;o.getContext('2d').drawImage(cut,left,top,cw,ch,0,0,480,600);
+    return o;                                                     // transparent PNG cut-out
+  }
+  let rot=0,src=null,work=document.createElement('canvas'),proc=null,mode='auto',job=0;
+  function show(){
+    const base=mode==='auto'&&proc?proc:work;cv.width=base.width;cv.height=base.height;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(base,0,0);cv.style.display='block';
+    $('capauto').classList.toggle('on',mode==='auto');$('caporig').classList.toggle('on',mode!=='auto');$('capauto').disabled=!proc;
+  }
+  async function draw(){if(!src)return;const m=Math.min(1,900/Math.max(src.width,src.height)),w=src.width*m,h=src.height*m,sw=rot%2?h:w,sh=rot%2?w:h;
+    work.width=sw;work.height=sh;const wx=work.getContext('2d');wx.save();wx.translate(sw/2,sh/2);wx.rotate(rot*Math.PI/2);wx.drawImage(src,-w/2,-h/2,w,h);wx.restore();
+    ['caprl','caprr','capsend'].forEach(id=>$(id).style.display='inline-flex');$('capmode').style.display='flex';
+    proc=null;mode='orig';show();
+    const my=++job;$('capsend').disabled=true;msg('✨ Removing background…');
+    try{const r=await autoPortrait(work);if(my!==job)return;
+      if(r){proc=r;mode='auto';msg('')}else msg('No person found — the original photo will be sent.','bad')}
+    catch(e){if(my!==job)return;msg((e.message||'Background removal failed')+' — the original photo will be sent.','bad')}
+    $('capsend').disabled=false;show()}
+  window.__capUse=i=>{src=i;rot=0;return draw()};               // used by tests
+  $('capfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>{src=i;rot=0;draw()};i.src=URL.createObjectURL(f)};
   $('caprl').onclick=()=>{rot=(rot+3)%4;draw()};$('caprr').onclick=()=>{rot=(rot+1)%4;draw()};
+  $('capauto').onclick=()=>{if(proc){mode='auto';show()}};$('caporig').onclick=()=>{mode='orig';show()};
   $('capsend').onclick=()=>{if(!conn||!conn.open)return msg('Not connected yet','bad');
-    const o=document.createElement('canvas'),m=Math.min(1,700/Math.max(cv.width,cv.height));o.width=cv.width*m;o.height=cv.height*m;o.getContext('2d').drawImage(cv,0,0,o.width,o.height);
-    conn.send({type:'photo',data:o.toDataURL('image/jpeg',.88)});$('capsend').disabled=true;$('capsend').textContent='Sending…';msg('')};
+    let data;
+    if(mode==='auto'&&proc)data=proc.toDataURL('image/png');
+    else{const o=document.createElement('canvas'),m=Math.min(1,700/Math.max(work.width,work.height));o.width=work.width*m;o.height=work.height*m;o.getContext('2d').drawImage(work,0,0,o.width,o.height);data=o.toDataURL('image/jpeg',.88)}
+    conn.send({type:'photo',data});$('capsend').disabled=true;$('capsend').textContent='Sending…';msg('')};
 })();
 
 // ---------- Create new Batches (form from Class Grid prototype) ----------
