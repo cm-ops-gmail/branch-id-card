@@ -1422,7 +1422,8 @@ function startPhone(sid){
     const sidNow=PH.sid;
     try{const r=await fetch(at.url);if(!r.ok)throw new Error(r.status);const blob=await r.blob();
       let res=null;try{res=analyzeCutout(await loadImg(URL.createObjectURL(blob)))}catch(e){console.warn(e)}
-      if(!res){                                                     // phone sent the original (or couldn't remove it) → do it here
+      const chosenOriginal=/original/.test(at.name||'');
+      if(!res&&!chosenOriginal){                                    // phone couldn't remove the background → do it here
         PH.busy=true;drawPhonePanel();
         try{res=analyzeCutout(await loadImg(URL.createObjectURL(await removeBg(blob))))}catch(e){console.warn('background removal failed',e)}
         PH.busy=false;
@@ -1513,7 +1514,8 @@ function drawPhonePanel(){
     const auto=mode==='auto'&&cut,btn=$('capsend');btn.disabled=true;btn.textContent='Sending…';msg('');
     let c2=work;if(auto){c2=document.createElement('canvas');c2.width=cut.width;c2.height=cut.height;c2.getContext('2d').drawImage(cut,0,0)}
     c2.toBlob(async b=>{
-      try{const r=await fetch(RELAY+cap,{method:'PUT',body:b,headers:{Filename:auto?'photo.png':'photo.jpg'}});if(!r.ok)throw new Error('HTTP '+r.status);
+      const name=auto?'photo-cutout.png':cut?'photo-original.jpg':'photo-raw.jpg';  // original = chosen on purpose; raw = phone couldn't remove the background
+      try{const r=await fetch(RELAY+cap,{method:'PUT',body:b,headers:{Filename:name}});if(!r.ok)throw new Error('HTTP '+r.status);
         msg('Sent — waiting for the computer to save it…')}
       catch(e){msg('Couldn’t send ('+(e.message||e)+'). Check the connection and try again.','bad')}
       btn.disabled=false;btn.textContent='Send & next';
