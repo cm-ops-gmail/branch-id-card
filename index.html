@@ -1356,15 +1356,18 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 
 // ================= Phone photos (QR → phone camera → student photo) =================
 const PH={open:false,sid:null,peer:null,url:'',count:0,base:''};
+const PEER_OPTS={config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:global.stun.twilio.com:3478']},
+  {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}],iceCandidatePoolSize:4}};
 function basePath(){return PH.base||(location.protocol==='file:'?location.href.split('?')[0].split('#')[0]:location.origin+location.pathname)}
 function startPhone(sid){
   closePhone(true);PH.sid=sid;PH.count=0;PH.open=true;PH.url='';PH.err='';
   drawPhonePanel();
   if(typeof Peer==='undefined'){PH.err='The phone-link service could not be loaded (check your internet connection).';drawPhonePanel();return}
   try{
-    const p=new Peer();PH.peer=p;
+    const p=new Peer(PEER_OPTS);PH.peer=p;
+    p.on('disconnected',()=>{if(PH.peer===p&&!p.destroyed)setTimeout(()=>{try{p.reconnect()}catch(_){}},1000)});
     p.on('open',id=>{PH.url=basePath()+'?cap='+id+'&n='+encodeURIComponent((stuRows(sid)[0]||{}).name||'');drawPhonePanel()});
-    p.on('error',e=>{PH.err='Link error: '+(e.type||e.message);drawPhonePanel()});
+    p.on('error',e=>{if(e.type==='unavailable-id'||e.type==='server-error'||e.type==='network'||e.type==='socket-error'||e.type==='socket-closed'){PH.err='Reconnecting to the link service…';drawPhonePanel();setTimeout(()=>{if(PH.peer===p&&PH.open)startPhone(PH.sid)},2500)}else{PH.err='Link error: '+(e.type||e.message);drawPhonePanel()}});
     p.on('connection',c=>{
       c.on('data',m=>{if(m&&m.type==='photo'&&typeof m.data==='string'&&m.data.startsWith('data:image/')){savePhonePhoto(PH.sid,m.data);PH.count++;try{c.send({ok:1})}catch(_){}drawPhonePanel()}});
     });
@@ -1403,13 +1406,27 @@ function drawPhonePanel(){
   let conn=null,cv=$('capcv'),ctx=cv.getContext('2d'),img=null;
   const msg=(t,c)=>{$('capmsg').textContent=t;$('capmsg').className=c||''};
   if(typeof Peer==='undefined'){$('capstat').textContent='Could not load the connection service. Check the internet connection.';return}
-  const p=new Peer();
-  p.on('open',()=>{conn=p.connect(cap,{reliable:true});
-    conn.on('open',()=>{$('capstat').innerHTML='<span class="ok">● Connected</span> — take the photo';});
-    conn.on('close',()=>{$('capstat').innerHTML='<span class="bad">Link closed on the computer</span>'});
-    conn.on('data',m=>{if(m&&m.ok){msg('✓ Saved on the computer. Take another photo if you want to replace it.','ok');$('capsend').disabled=false;$('capsend').textContent='Send & next'}});
-    setTimeout(()=>{if(!conn.open)$('capstat').innerHTML='<span class="bad">Can’t reach the computer — is the link still open?</span>'},9000)});
-  p.on('error',e=>{$('capstat').innerHTML='<span class="bad">Connection error: '+(e.type||e.message)+'</span>'});
+  let tries=0,gaveUp=false;
+  const st=h=>$('capstat').innerHTML=h;
+  function connect(){
+    if(gaveUp)return;tries++;
+    const p=new Peer(PEER_OPTS);
+    let ok=false;
+    const retry=why=>{if(ok||gaveUp)return;try{p.destroy()}catch(_){}
+      if(tries>=4){gaveUp=true;st('<span class="bad">Couldn’t connect ('+why+'). Make sure the link is still open on the computer, then <a href="" style="color:#1d4ed8">try again</a>.</span>');return}
+      st('Connecting… (attempt '+(tries+1)+' of 4)');setTimeout(connect,1200)};
+    st('Connecting to the computer…'+(tries>1?' (attempt '+tries+' of 4)':''));
+    p.on('open',()=>{conn=p.connect(cap,{reliable:true});
+      conn.on('open',()=>{ok=true;st('<span class="ok">● Connected</span> — take the photo')});
+      conn.on('close',()=>{if(ok)st('<span class="bad">Link closed on the computer</span>')});
+      conn.on('error',e=>retry(e.type||'error'));
+      conn.on('data',m=>{if(m&&m.ok){msg('✓ Saved on the computer. Take another photo if you want to replace it.','ok');$('capsend').disabled=false;$('capsend').textContent='Send & next'}});
+      setTimeout(()=>{if(!conn.open)retry('timeout')},12000)});
+    p.on('disconnected',()=>{if(!ok&&!gaveUp)return;try{p.reconnect()}catch(_){}});
+    p.on('error',e=>{if(ok)return;retry(e.type||e.message)});
+    window.__peerP=p;
+  }
+  connect();
   // ---- auto portrait: remove background (MediaPipe Selfie Segmentation, runs on the phone), crop head & shoulders 4:5 ----
   const MP='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747/';
   let seg=null,segP=null;
